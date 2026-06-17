@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@mescius/spread-excelio": "^19.1.2",
+    "@mescius/spread-sheets": "^19.1.2",
+    "@mescius/spread-sheets-pdf": "^19.1.2",
+    "@mescius/spread-sheets-react": "^19.1.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -11,8 +15,10 @@
     "@types/node": "^16.18.126",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "pdfjs-dist": "^6.0.227",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-dropzone": "^15.0.0",
     "react-scripts": "5.0.1",
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"

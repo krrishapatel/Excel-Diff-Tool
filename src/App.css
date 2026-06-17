@@ -1,38 +1,164 @@
-.App {
-  text-align: center;
+* {
+  box-sizing: border-box;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f9fafb;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+.app-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  padding: 40px 20px;
 }
 
-.App-link {
-  color: #61dafb;
+.app-container.full {
+  justify-content: flex-start;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.app-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #1f2937;
+}
+
+.app-header p {
+  margin: 8px 0 0;
+  color: #6b7280;
+  font-size: 15px;
+}
+
+.app-header.compact {
+  text-align: left;
+  margin-bottom: 0;
+  padding: 12px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-header.compact h1 {
+  font-size: 18px;
+}
+
+.mode-nav {
+  display: flex;
+  gap: 4px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.mode-nav button {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  color: #6b7280;
+  transition: all 0.15s;
+}
+
+.mode-nav button.active {
+  background: #fff;
+  color: #1f2937;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.upload-area {
+  width: 100%;
+  max-width: 640px;
+}
+
+.upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.compare-btn {
+  width: 100%;
+  padding: 14px;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.compare-btn:hover:not(:disabled) {
+  background: #4338ca;
+}
+
+.compare-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reset-btn {
+  padding: 6px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.reset-btn:hover {
+  background: #f9fafb;
+}
+
+.error-msg {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.diff-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.diff-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.spread-container {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  gap: 1px;
+  background: #e5e7eb;
 }

@@ -1,46 +1,62 @@
-# Getting Started with Create React App
+# Excel Workbook Diff Tool
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A browser-based tool for comparing two `.xlsx` workbooks side-by-side, built for tax preparation workflows. Identifies cell-level changes across sheets and provides a navigable diff interface using SpreadJS.
 
-## Available Scripts
+Includes a PDF-to-Workbook reconciliation extension for verifying that filed tax return values match the underlying workbook calculations.
 
-In the project directory, you can run:
+## Setup & Run
 
-### `npm start`
+```bash
+npm install
+npm start
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Opens at `http://localhost:3000`.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## How to Use
 
-### `npm test`
+1. **Upload** the prior year (base) and current year (new) `.xlsx` workbooks
+2. **Compare** — the tool computes diffs across all sheets
+3. **Review** — navigate changes using:
+   - Left sidebar: sheet list sorted by modification status
+   - Top toolbar: prev/next navigation through individual cell changes
+   - Side-by-side SpreadJS views with highlighted differences
+   - Bottom table: full list of changes for the selected sheet
+4. **PDF Reconciliation** — switch to the reconciliation tab to verify workbook values against the filed PDF return
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Design Decisions
 
-### `npm run build`
+### Diff Strategy
+- **Sheet matching by name** — sheets are matched between workbooks by exact name. New/removed sheets are flagged separately.
+- **Value-first diffing** — cell value changes are the primary comparison unit (not formatting, styles, or metadata). Values are normalized (numbers rounded to 2 decimal places, empty/null treated equivalently) to reduce noise.
+- **Performance cap** — SpreadJS viewer limits rendering to 500 rows x 50 columns per sheet to stay responsive with large workbooks. The diff engine processes all data.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### UI Approach
+- Inspired by code diff tools (GitHub PR view): side-by-side panels with color-coded highlights
+- Current diff is highlighted in yellow with an amber border; added cells are green, removed are red, changed are amber
+- Navigation toolbar lets reviewers step through changes sequentially — critical for ensuring nothing is missed
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### PDF Reconciliation (Extension)
+- Configurable check definitions in `src/config/pdfChecks.ts` — each check specifies:
+  - A PDF page and expected value
+  - One or more workbook cell references to validate against
+  - Whether sign flips are allowed (common in debit/credit accounting)
+  - A tolerance threshold
+- The system runs all checks against the loaded workbook and reports pass/fail with specific messages
+- PDF is rendered via native browser iframe with page anchoring
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Architecture
+- **React + TypeScript** — type safety for the complex diff data structures
+- **SpreadJS** (30-day trial) — renders actual Excel content with formulas, formatting, column widths
+- **ExcelIO** — parses `.xlsx` to SpreadJS JSON format entirely client-side (no server needed)
+- **Workbook JSON** stored in refs — allows both the diff engine and SpreadJS viewers to operate on the same parsed data without re-parsing
 
-### `npm run eject`
+## What I'd Do Next
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **Formula diffing** — compare formulas (not just computed values) to catch logic changes
+- **Fuzzy sheet matching** — handle renamed sheets (e.g., "A5.3 AMT Dep" → "A5.3 AMT NBV") via similarity scoring
+- **Filter/search** — let reviewers filter diffs by type, magnitude, or cell range
+- **Materiality threshold** — flag changes above a configurable dollar threshold vs. minor rounding differences
+- **PDF text extraction** — use pdf.js to auto-extract values from the tax return instead of manual config
+- **Export diff report** — generate a printable summary for review documentation
+- **Web Worker diffing** — move the diff computation off the main thread for large workbooks
