@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import * as ExcelIO from '@mescius/spread-excelio';
 import { FileUpload } from './components/FileUpload';
 import { DiffSummary } from './components/DiffSummary';
@@ -7,7 +7,7 @@ import { SpreadViewer } from './components/SpreadViewer';
 import { DiffListView } from './components/DiffListView';
 import { PdfReconcileView } from './components/PdfReconcileView';
 import { computeDiff, extractSheetData } from './engine/diff';
-import { WorkbookDiff } from './types';
+import { WorkbookDiff, CellDiff } from './types';
 import './App.css';
 
 type AppMode = 'upload' | 'diff' | 'reconcile';
@@ -22,6 +22,7 @@ function App() {
   const [currentDiffIndex, setCurrentDiffIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [threshold, setThreshold] = useState(0);
 
   const oldJsonRef = useRef<any>(null);
   const newJsonRef = useRef<any>(null);
@@ -89,7 +90,72 @@ function App() {
   }, []);
 
   const selectedSheetDiff = diff?.sheets.find((s) => s.name === selectedSheet);
-  const currentDiffs = selectedSheetDiff?.cellDiffs || [];
+  const allCurrentDiffs = selectedSheetDiff?.cellDiffs || [];
+
+  const filteredDiffs = useMemo(() => {
+    if (threshold <= 0) return allCurrentDiffs;
+    return allCurrentDiffs.filter((d: CellDiff) => {
+      const oldNum = typeof d.oldValue === 'number' ? d.oldValue : parseFloat(d.oldValue);
+      const newNum = typeof d.newValue === 'number' ? d.newValue : parseFloat(d.newValue);
+      if (isNaN(oldNum) && isNaN(newNum)) return true; // non-numeric always shown
+      const oldVal = isNaN(oldNum) ? 0 : oldNum;
+      const newVal = isNaN(newNum) ? 0 : newNum;
+      return Math.abs(newVal - oldVal) >= threshold;
+    });
+  }, [allCurrentDiffs, threshold]);
+
+  const currentDiffs = filteredDiffs;
+
+  const handleExportCsv = useCallback(() => {
+    if (!diff) return;
+    const rows: string[] = ['Sheet,Cell,Type,Old Value,New Value'];
+    const escCsv = (val: any): string => {
+      if (val === null || val === undefined) return '';
+      const s = String(val);
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    };
+    const colToLetter = (col: number): string => {
+      let result = '';
+      let c = col;
+      while (c >= 0) {
+        result = String.fromCharCode((c % 26) + 65) + result;
+        c = Math.floor(c / 26) - 1;
+      }
+      return result;
+    };
+    for (const sheet of diff.sheets) {
+      for (const d of sheet.cellDiffs) {
+        const cell = colToLetter(d.col) + (d.row + 1);
+        rows.push(
+          `${escCsv(sheet.name)},${cell},${d.type},${escCsv(d.oldValue)},${escCsv(d.newValue)}`
+        );
+      }
+    }
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diff-report.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [diff]);
+
+  // Clamp currentDiffIndex when filtered list shrinks
+  useEffect(() => {
+    if (currentDiffs.length > 0 && currentDiffIndex >= currentDiffs.length) {
+      setCurrentDiffIndex(currentDiffs.length - 1);
+    }
+  }, [currentDiffs.length, currentDiffIndex]);
+
+  const handleThresholdChange = useCallback((val: number) => {
+    setThreshold(val);
+    setCurrentDiffIndex(0);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -183,9 +249,18 @@ function App() {
             </button>
           </nav>
         </div>
-        <button className="reset-btn" onClick={() => { setMode('upload'); setDiff(null); }}>
-          New Comparison
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            className="reset-btn"
+            onClick={handleExportCsv}
+            style={{ backgroundColor: '#059669', borderColor: '#059669' }}
+          >
+            Download Report
+          </button>
+          <button className="reset-btn" onClick={() => { setMode('upload'); setDiff(null); }}>
+            New Comparison
+          </button>
+        </div>
       </header>
 
       <div className="diff-layout">
@@ -205,6 +280,8 @@ function App() {
             diffs={currentDiffs}
             currentIndex={currentDiffIndex}
             onNavigate={setCurrentDiffIndex}
+            threshold={threshold}
+            onThresholdChange={handleThresholdChange}
           />
 
           <div className="spread-container">

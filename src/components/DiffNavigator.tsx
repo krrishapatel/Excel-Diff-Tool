@@ -5,6 +5,8 @@ interface DiffNavigatorProps {
   diffs: CellDiff[];
   currentIndex: number;
   onNavigate: (index: number) => void;
+  threshold?: number;
+  onThresholdChange?: (value: number) => void;
 }
 
 function colToLetter(col: number): string {
@@ -27,11 +29,41 @@ export const DiffNavigator: React.FC<DiffNavigatorProps> = ({
   diffs,
   currentIndex,
   onNavigate,
+  threshold,
+  onThresholdChange,
 }) => {
+  const thresholdControl = onThresholdChange ? (
+    <div style={{ marginLeft: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
+      <label style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, whiteSpace: 'nowrap' }}>
+        Min $
+      </label>
+      <input
+        type="text"
+        placeholder="0"
+        value={threshold ? String(threshold) : ''}
+        onChange={(e) => {
+          const val = e.target.value.replace(/[^0-9]/g, '');
+          onThresholdChange(val ? parseInt(val, 10) : 0);
+        }}
+        style={{
+          width: 80,
+          padding: '3px 6px',
+          fontSize: 12,
+          border: '1px solid #d1d5db',
+          borderRadius: 4,
+          outline: 'none',
+        }}
+      />
+    </div>
+  ) : null;
+
   if (diffs.length === 0) {
     return (
-      <div style={{ padding: 16, textAlign: 'center', color: '#6b7280' }}>
-        No differences in this sheet
+      <div className="diff-nav-bar" style={{ justifyContent: 'space-between' }}>
+        <span style={{ color: '#6b7280', fontSize: 13 }}>
+          No differences in this sheet
+        </span>
+        {thresholdControl}
       </div>
     );
   }
@@ -64,6 +96,8 @@ export const DiffNavigator: React.FC<DiffNavigatorProps> = ({
           <DiffBadge diff={diffs[currentIndex]} />
         </div>
       )}
+
+      {thresholdControl}
     </div>
   );
 };
