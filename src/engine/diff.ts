@@ -7,26 +7,52 @@ interface SheetData {
   colCount: number;
 }
 
-export function extractSheetData(workbook: any): SheetData[] {
+export function extractSheetData(workbookJson: any): SheetData[] {
+  if (!workbookJson?.sheets) return [];
+
   const sheets: SheetData[] = [];
-  const sheetCount = workbook.getSheetCount();
 
-  for (let i = 0; i < sheetCount; i++) {
-    const sheet = workbook.getSheet(i);
-    const name = sheet.name();
-    const rowCount = sheet.getRowCount();
-    const colCount = sheet.getColumnCount();
+  for (const name of Object.keys(workbookJson.sheets)) {
+    const sheetJson = workbookJson.sheets[name];
+    const dataTable = sheetJson?.data?.dataTable;
+
+    if (!dataTable) {
+      sheets.push({ name, rows: [], rowCount: 0, colCount: 0 });
+      continue;
+    }
+
+    const rowKeys = Object.keys(dataTable).map(Number).sort((a, b) => a - b);
+    if (rowKeys.length === 0) {
+      sheets.push({ name, rows: [], rowCount: 0, colCount: 0 });
+      continue;
+    }
+
+    const maxRow = Math.min(rowKeys[rowKeys.length - 1] + 1, 500);
+    let maxCol = 0;
+
+    for (const rk of rowKeys) {
+      const rowData = dataTable[rk];
+      if (rowData) {
+        const colKeys = Object.keys(rowData).map(Number);
+        for (const ck of colKeys) {
+          if (ck > maxCol) maxCol = ck;
+        }
+      }
+    }
+    maxCol = Math.min(maxCol + 1, 50);
+
     const rows: any[][] = [];
-
-    for (let r = 0; r < rowCount; r++) {
+    for (let r = 0; r < maxRow; r++) {
       const row: any[] = [];
-      for (let c = 0; c < colCount; c++) {
-        row.push(sheet.getValue(r, c));
+      const rowData = dataTable[r];
+      for (let c = 0; c < maxCol; c++) {
+        const cell = rowData?.[c];
+        row.push(cell?.value ?? null);
       }
       rows.push(row);
     }
 
-    sheets.push({ name, rows, rowCount, colCount });
+    sheets.push({ name, rows, rowCount: maxRow, colCount: maxCol });
   }
 
   return sheets;

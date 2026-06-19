@@ -32,7 +32,7 @@ export const DiffListView: React.FC<DiffListViewProps> = ({ diffs, currentIndex,
   };
 
   return (
-    <div style={{ overflowY: 'auto', maxHeight: 300, borderTop: '1px solid #e5e7eb' }}>
+    <div className="diff-list-container">
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr style={{ backgroundColor: '#f9fafb', position: 'sticky', top: 0 }}>

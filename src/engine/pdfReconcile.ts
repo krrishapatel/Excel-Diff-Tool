@@ -1,20 +1,7 @@
 import { PdfCheck, PdfCheckResult, WorkbookRef } from '../types';
 
-export function getCellValue(workbook: any, ref: WorkbookRef): number | null {
-  const sheetCount = workbook.getSheetCount();
-  let sheet = null;
-
-  for (let i = 0; i < sheetCount; i++) {
-    const s = workbook.getSheet(i);
-    if (s.name() === ref.sheet) {
-      sheet = s;
-      break;
-    }
-  }
-
-  if (!sheet) return null;
-
-  const match = ref.cell.match(/^([A-Z]+)(\d+)$/i);
+function cellToColRow(cell: string): { col: number; row: number } | null {
+  const match = cell.match(/^([A-Z]+)(\d+)$/i);
   if (!match) return null;
 
   const colStr = match[1].toUpperCase();
@@ -26,18 +13,51 @@ export function getCellValue(workbook: any, ref: WorkbookRef): number | null {
   }
   col -= 1;
 
-  const val = sheet.getValue(row, col);
+  return { col, row };
+}
+
+export function getCellValueFromJson(workbookJson: any, ref: WorkbookRef): number | null {
+  if (!workbookJson || !workbookJson.sheets) return null;
+
+  // Try exact match first, then fuzzy match (handles trailing spaces, etc.)
+  let sheetJson = workbookJson.sheets[ref.sheet];
+  if (!sheetJson) {
+    const sheetKey = Object.keys(workbookJson.sheets).find(
+      (k) => k.trim() === ref.sheet.trim()
+    );
+    if (sheetKey) sheetJson = workbookJson.sheets[sheetKey];
+  }
+  if (!sheetJson) return null;
+
+  const pos = cellToColRow(ref.cell);
+  if (!pos) return null;
+
+  const { row, col } = pos;
+
+  // Handle different possible JSON structures from ExcelIO
+  const dataTable = sheetJson.data?.dataTable;
+  if (!dataTable) return null;
+
+  // dataTable keys might be numeric or string
+  const rowData = dataTable[row] || dataTable[String(row)];
+  if (!rowData) return null;
+
+  const cellData = rowData[col] || rowData[String(col)];
+  if (!cellData) return null;
+
+  // Value might be in .value or directly
+  const val = cellData.value !== undefined ? cellData.value : cellData;
   if (val === null || val === undefined) return null;
   if (typeof val === 'number') return val;
   const parsed = parseFloat(String(val).replace(/[,$]/g, ''));
   return isNaN(parsed) ? null : parsed;
 }
 
-export function runChecks(workbook: any, checks: PdfCheck[]): PdfCheckResult[] {
+export function runChecks(workbookJson: any, checks: PdfCheck[]): PdfCheckResult[] {
   return checks.map((check) => {
     const actualValues = check.workbookRefs.map((ref) => ({
       ref,
-      value: getCellValue(workbook, ref),
+      value: getCellValueFromJson(workbookJson, ref),
     }));
 
     const tolerance = check.tolerance ?? 1;
@@ -58,12 +78,12 @@ export function runChecks(workbook: any, checks: PdfCheck[]): PdfCheckResult[] {
 
       if (diff <= tolerance || diffFlipped <= tolerance) {
         messages.push(
-          `${ref.sheet}!${ref.cell}: ${value} ✓ matches PDF (${check.pdfValue})`
+          `${ref.sheet}!${ref.cell}: ${value.toLocaleString()} ✓ matches PDF (${check.pdfValue.toLocaleString()})`
         );
       } else {
         allPass = false;
         messages.push(
-          `${ref.sheet}!${ref.cell}: ${value} ✗ expected ${check.pdfValue} (diff: ${diff})`
+          `${ref.sheet}!${ref.cell}: ${value.toLocaleString()} ✗ expected ${check.pdfValue.toLocaleString()} (diff: ${diff.toLocaleString()})`
         );
       }
     }

@@ -42,14 +42,17 @@ body {
 }
 
 .app-header.compact {
-  text-align: left;
+  text-align: center;
   margin-bottom: 0;
   padding: 12px 20px;
+  padding-left: 170px;
   border-bottom: 1px solid #e5e7eb;
   background: #fff;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 16px;
+  flex-shrink: 0;
 }
 
 .app-header.compact h1 {
@@ -74,6 +77,10 @@ body {
   background: transparent;
   color: #6b7280;
   transition: all 0.15s;
+}
+
+.mode-nav button:hover {
+  color: #1f2937;
 }
 
 .mode-nav button.active {
@@ -141,24 +148,163 @@ body {
   margin-bottom: 16px;
 }
 
+/* =============================================
+   DIFF LAYOUT - sidebar fixed left, content right
+   ============================================= */
 .diff-layout {
-  display: flex;
   flex: 1;
   overflow: hidden;
+  min-height: 0;
+}
+
+.diff-sidebar {
+  position: fixed;
+  left: 0;
+  top: 49px;
+  bottom: 0;
+  width: 150px;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  background: #fff;
+  font-size: 11px;
+  z-index: 9999;
 }
 
 .diff-main {
-  flex: 1;
+  margin-left: 150px;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  min-width: 0;
   overflow: hidden;
 }
 
+.diff-nav-bar {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+/* Two spreadsheet panels side by side */
 .spread-container {
   flex: 1;
   display: flex;
-  min-height: 0;
-  gap: 1px;
+  gap: 2px;
   background: #e5e7eb;
+  overflow: hidden;
+}
+
+.spread-panel {
+  flex: 1 1 50%;
+  min-width: 0;
+  max-width: 50%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+}
+
+.spread-panel-header {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.spread-panel-header.old {
+  background-color: #fef2f2;
+  border-bottom: 2px solid #fca5a5;
+  color: #991b1b;
+}
+
+.spread-panel-header.new {
+  background-color: #f0fdf4;
+  border-bottom: 2px solid #86efac;
+  color: #166534;
+}
+
+/* The scrollable area that CONTAINS the table */
+.sheet-scroll {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.sheet-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  white-space: nowrap;
+}
+
+.sheet-table th,
+.sheet-table td {
+  border: 1px solid #e5e7eb;
+  padding: 2px 8px;
+}
+
+.sheet-table .col-header {
+  background: #f3f4f6;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 10px;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.sheet-table .corner-header {
+  background: #f3f4f6;
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  min-width: 32px;
+}
+
+.sheet-table .row-header {
+  background: #f9fafb;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 10px;
+  text-align: center;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 32px;
+}
+
+.cell-current {
+  background: #fef08a !important;
+  outline: 2px solid #f59e0b;
+  outline-offset: -1px;
+  font-weight: 700;
+}
+
+.cell-changed {
+  background: #fef3c7;
+}
+
+.cell-added {
+  background: #dcfce7;
+}
+
+.cell-removed {
+  background: #fee2e2;
+  text-decoration: line-through;
+  color: #991b1b;
+}
+
+/* Diff list (bottom table) */
+.diff-list-container {
+  max-height: 220px;
+  overflow-y: auto;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }

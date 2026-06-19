@@ -1,6 +1,4 @@
-import React, { useRef, useEffect } from 'react';
-import * as GC from '@mescius/spread-sheets';
-import '@mescius/spread-sheets/styles/gc.spread.sheets.excel2016colorful.css';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { CellDiff } from '../types';
 
 interface SpreadViewerProps {
@@ -12,6 +10,53 @@ interface SpreadViewerProps {
   side: 'old' | 'new';
 }
 
+function colToLetter(col: number): string {
+  let result = '';
+  let c = col;
+  while (c >= 0) {
+    result = String.fromCharCode((c % 26) + 65) + result;
+    c = Math.floor(c / 26) - 1;
+  }
+  return result;
+}
+
+function getSheetData(workbookJson: any, sheetName: string): { rows: any[][]; maxCol: number } {
+  if (!workbookJson?.sheets?.[sheetName]) return { rows: [], maxCol: 0 };
+  const sheetJson = workbookJson.sheets[sheetName];
+  const dataTable = sheetJson?.data?.dataTable;
+  if (!dataTable) return { rows: [], maxCol: 0 };
+
+  const rowKeys = Object.keys(dataTable).map(Number).sort((a, b) => a - b);
+  if (rowKeys.length === 0) return { rows: [], maxCol: 0 };
+
+  const maxRow = Math.min(rowKeys[rowKeys.length - 1] + 1, 300);
+  let maxCol = 0;
+
+  for (const rk of rowKeys) {
+    const rowData = dataTable[rk];
+    if (rowData) {
+      const colKeys = Object.keys(rowData).map(Number);
+      for (const ck of colKeys) {
+        if (ck > maxCol) maxCol = ck;
+      }
+    }
+  }
+  maxCol = Math.min(maxCol + 1, 30);
+
+  const rows: any[][] = [];
+  for (let r = 0; r < maxRow; r++) {
+    const row: any[] = [];
+    const rowData = dataTable[r];
+    for (let c = 0; c < maxCol; c++) {
+      const cell = rowData?.[c];
+      row.push(cell?.value ?? null);
+    }
+    rows.push(row);
+  }
+
+  return { rows, maxCol };
+}
+
 export const SpreadViewer: React.FC<SpreadViewerProps> = ({
   workbookJson,
   sheetName,
@@ -20,109 +65,94 @@ export const SpreadViewer: React.FC<SpreadViewerProps> = ({
   label,
   side,
 }) => {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const spreadRef = useRef<GC.Spread.Sheets.Workbook | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { rows, maxCol } = useMemo(() => getSheetData(workbookJson, sheetName), [workbookJson, sheetName]);
 
+  const diffSet = useMemo(() => {
+    const map = new Map<string, { type: CellDiff['type']; index: number }>();
+    diffs.forEach((d, i) => map.set(`${d.row},${d.col}`, { type: d.type, index: i }));
+    return map;
+  }, [diffs]);
+
+  const currentDiff = diffs[currentDiffIndex];
+
+  // Reset scroll to top-left when sheet changes
   useEffect(() => {
-    if (!hostRef.current) return;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+      scrollRef.current.scrollLeft = 0;
+    }
+  }, [sheetName]);
 
-    const spread = new GC.Spread.Sheets.Workbook(hostRef.current, {
-      sheetCount: 0,
-    });
-    spreadRef.current = spread;
-
-    return () => {
-      spread.destroy();
-    };
-  }, []);
-
+  // Scroll to current diff
   useEffect(() => {
-    if (!spreadRef.current || !workbookJson) return;
+    if (!currentDiff || !scrollRef.current) return;
+    const el = scrollRef.current.querySelector(`[data-cell="${currentDiff.row},${currentDiff.col}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+  }, [currentDiff]);
 
-    const spread = spreadRef.current;
-    spread.suspendPaint();
-
-    spread.fromJSON(workbookJson);
-
-    let targetIndex = -1;
-    for (let i = 0; i < spread.getSheetCount(); i++) {
-      if (spread.getSheet(i).name() === sheetName) {
-        targetIndex = i;
-        break;
-      }
-    }
-
-    if (targetIndex >= 0) {
-      spread.setActiveSheetIndex(targetIndex);
-      const sheet = spread.getActiveSheet();
-      applyDiffHighlights(sheet, diffs, side, currentDiffIndex);
-    }
-
-    spread.resumePaint();
-  }, [workbookJson, sheetName, diffs, currentDiffIndex, side]);
-
-  useEffect(() => {
-    if (!spreadRef.current || diffs.length === 0 || currentDiffIndex < 0) return;
-    const diff = diffs[currentDiffIndex];
-    if (!diff) return;
-
-    const sheet = spreadRef.current.getActiveSheet();
-    if (sheet) {
-      sheet.showRow(diff.row, GC.Spread.Sheets.VerticalPosition.center);
-      sheet.showColumn(diff.col, GC.Spread.Sheets.HorizontalPosition.center);
-      sheet.setActiveCell(diff.row, diff.col);
-    }
-  }, [currentDiffIndex, diffs]);
+  if (rows.length === 0) {
+    return (
+      <div className="spread-panel">
+        <div className={`spread-panel-header ${side}`}>{label}</div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 13 }}>
+          {sheetName ? 'Sheet not found in this workbook' : 'Select a sheet'}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-      <div
-        style={{
-          padding: '6px 12px',
-          backgroundColor: side === 'old' ? '#fef2f2' : '#f0fdf4',
-          borderBottom: `2px solid ${side === 'old' ? '#fca5a5' : '#86efac'}`,
-          fontSize: 12,
-          fontWeight: 600,
-          color: side === 'old' ? '#991b1b' : '#166534',
-        }}
-      >
-        {label}
+    <div className="spread-panel">
+      <div className={`spread-panel-header ${side}`}>{label}</div>
+      <div className="sheet-scroll" ref={scrollRef}>
+        <table className="sheet-table">
+          <thead>
+            <tr>
+              <th className="corner-header"></th>
+              {Array.from({ length: maxCol }, (_, c) => (
+                <th key={c} className="col-header">{colToLetter(c)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, r) => (
+              <tr key={r}>
+                <td className="row-header">{r + 1}</td>
+                {row.map((val, c) => {
+                  const key = `${r},${c}`;
+                  const entry = diffSet.get(key);
+                  const isCurrent = currentDiff?.row === r && currentDiff?.col === c;
+
+                  let cls = '';
+                  if (isCurrent) cls = 'cell-current';
+                  else if (entry) {
+                    if (entry.type === 'added' && side === 'new') cls = 'cell-added';
+                    else if (entry.type === 'removed' && side === 'old') cls = 'cell-removed';
+                    else if (entry.type === 'changed') cls = 'cell-changed';
+                  }
+
+                  return (
+                    <td key={c} className={cls || undefined} data-cell={key}>
+                      {formatValue(val)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <div ref={hostRef} style={{ flex: 1 }} />
     </div>
   );
 };
 
-function applyDiffHighlights(
-  sheet: GC.Spread.Sheets.Worksheet,
-  diffs: CellDiff[],
-  side: 'old' | 'new',
-  currentIndex: number
-) {
-  for (let i = 0; i < diffs.length; i++) {
-    const diff = diffs[i];
-    const isCurrent = i === currentIndex;
-
-    let bgColor: string;
-    if (isCurrent) {
-      bgColor = '#fef08a';
-    } else if (diff.type === 'added') {
-      bgColor = side === 'new' ? '#dcfce7' : '#f3f4f6';
-    } else if (diff.type === 'removed') {
-      bgColor = side === 'old' ? '#fee2e2' : '#f3f4f6';
-    } else {
-      bgColor = '#fef3c7';
-    }
-
-    const style = new GC.Spread.Sheets.Style();
-    style.backColor = bgColor;
-    if (isCurrent) {
-      style.borderLeft = new GC.Spread.Sheets.LineBorder('#f59e0b', GC.Spread.Sheets.LineStyle.medium);
-      style.borderRight = new GC.Spread.Sheets.LineBorder('#f59e0b', GC.Spread.Sheets.LineStyle.medium);
-      style.borderTop = new GC.Spread.Sheets.LineBorder('#f59e0b', GC.Spread.Sheets.LineStyle.medium);
-      style.borderBottom = new GC.Spread.Sheets.LineBorder('#f59e0b', GC.Spread.Sheets.LineStyle.medium);
-    }
-
-    sheet.setStyle(diff.row, diff.col, style);
+function formatValue(val: any): string {
+  if (val === null || val === undefined) return '';
+  if (typeof val === 'number') {
+    if (Math.abs(val) >= 1000) return val.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    return String(Math.round(val * 100) / 100);
   }
+  if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE';
+  return String(val);
 }

@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import * as GC from '@mescius/spread-sheets';
 import * as ExcelIO from '@mescius/spread-excelio';
 import { FileUpload } from './components/FileUpload';
 import { DiffSummary } from './components/DiffSummary';
@@ -43,19 +42,6 @@ function App() {
     });
   }, []);
 
-  const jsonToWorkbook = useCallback((json: any): any => {
-    const hiddenHost = document.createElement('div');
-    hiddenHost.style.position = 'absolute';
-    hiddenHost.style.left = '-9999px';
-    hiddenHost.style.width = '1000px';
-    hiddenHost.style.height = '600px';
-    document.body.appendChild(hiddenHost);
-    const wb = new GC.Spread.Sheets.Workbook(hiddenHost, { sheetCount: 0 });
-    wb.fromJSON(json);
-    document.body.removeChild(hiddenHost);
-    return wb;
-  }, []);
-
   const handleCompare = useCallback(async () => {
     if (!oldFile || !newFile) return;
     setLoading(true);
@@ -70,11 +56,8 @@ function App() {
       oldJsonRef.current = oldJson;
       newJsonRef.current = newJson;
 
-      const oldWb = jsonToWorkbook(oldJson);
-      const newWb = jsonToWorkbook(newJson);
-
-      const oldSheets = extractSheetData(oldWb);
-      const newSheets = extractSheetData(newWb);
+      const oldSheets = extractSheetData(oldJson);
+      const newSheets = extractSheetData(newJson);
       const result = computeDiff(oldSheets, newSheets);
 
       setDiff(result);
@@ -92,7 +75,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [oldFile, newFile, loadWorkbookJson, jsonToWorkbook]);
+  }, [oldFile, newFile, loadWorkbookJson]);
 
   const handlePdfUpload = useCallback(() => {
     const input = document.createElement('input');

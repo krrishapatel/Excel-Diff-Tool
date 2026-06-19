@@ -14,19 +14,15 @@ export const DiffSummary: React.FC<DiffSummaryProps> = ({ diff, selectedSheet, o
   });
 
   return (
-    <div style={{ width: 280, borderRight: '1px solid #e5e7eb', overflowY: 'auto', padding: 16 }}>
-      <h3 style={{ margin: '0 0 8px', fontSize: 14, color: '#6b7280' }}>Summary</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
-        <StatBox label="Modified" value={diff.summary.sheetsModified} color="#f59e0b" />
-        <StatBox label="Added" value={diff.summary.sheetsAdded} color="#10b981" />
-        <StatBox label="Removed" value={diff.summary.sheetsRemoved} color="#ef4444" />
-        <StatBox label="Unchanged" value={diff.summary.sheetsUnchanged} color="#6b7280" />
+    <div className="diff-sidebar">
+      <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+        <span style={{ color: '#f59e0b', fontWeight: 700 }}>{diff.summary.sheetsModified}</span>
+        <span style={{ color: '#10b981', fontWeight: 700 }}>+{diff.summary.sheetsAdded}</span>
+        <span style={{ color: '#ef4444', fontWeight: 700 }}>-{diff.summary.sheetsRemoved}</span>
       </div>
-      <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 12px' }}>
-        {diff.summary.totalCellChanges.toLocaleString()} total cell changes
+      <p style={{ fontSize: 10, color: '#6b7280', margin: '0 0 8px' }}>
+        {diff.summary.totalCellChanges.toLocaleString()} changes
       </p>
-
-      <h3 style={{ margin: '0 0 8px', fontSize: 14, color: '#6b7280' }}>Sheets</h3>
       {sortedSheets.map((sheet) => (
         <SheetRow
           key={sheet.name}
@@ -74,15 +70,15 @@ const SheetRow: React.FC<{ sheet: SheetDiff; isSelected: boolean; onClick: () =>
     <div
       onClick={onClick}
       style={{
-        padding: '8px 10px',
-        borderRadius: 6,
-        marginBottom: 4,
+        padding: '4px 6px',
+        borderRadius: 4,
+        marginBottom: 2,
         cursor: 'pointer',
         backgroundColor: isSelected ? '#eef2ff' : 'transparent',
         border: isSelected ? '1px solid #c7d2fe' : '1px solid transparent',
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
+        gap: 6,
       }}
     >
       <div
@@ -97,7 +93,7 @@ const SheetRow: React.FC<{ sheet: SheetDiff; isSelected: boolean; onClick: () =>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            fontSize: 13,
+            fontSize: 11,
             fontWeight: isSelected ? 600 : 400,
             color: '#1f2937',
             overflow: 'hidden',

@@ -37,7 +37,7 @@ export const DiffNavigator: React.FC<DiffNavigatorProps> = ({
   }
 
   return (
-    <div style={{ borderBottom: '1px solid #e5e7eb', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div className="diff-nav-bar">
       <button
         onClick={() => onNavigate(Math.max(0, currentIndex - 1))}
         disabled={currentIndex === 0}

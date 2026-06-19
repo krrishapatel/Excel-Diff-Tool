@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import * as GC from '@mescius/spread-sheets';
-import { PdfCheckResult } from '../types';
-import { defaultChecks } from '../config/pdfChecks';
+import React, { useState, useEffect, useRef } from 'react';
+import { PdfCheck, PdfCheckResult } from '../types';
 import { runChecks } from '../engine/pdfReconcile';
 
 interface PdfReconcileViewProps {
@@ -15,9 +13,19 @@ export const PdfReconcileView: React.FC<PdfReconcileViewProps> = ({
   pdfFile,
   onRequestPdf,
 }) => {
+  const [checks, setChecks] = useState<PdfCheck[]>([]);
   const [results, setResults] = useState<PdfCheckResult[]>([]);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [selectedResult, setSelectedResult] = useState<number>(0);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const [newDesc, setNewDesc] = useState('');
+  const [newPdfValue, setNewPdfValue] = useState('');
+  const [newSheet, setNewSheet] = useState('');
+  const [newCell, setNewCell] = useState('');
+  const [newSignFlip, setNewSignFlip] = useState(false);
+  const [newPdfPage, setNewPdfPage] = useState('1');
 
   useEffect(() => {
     if (pdfFile) {
@@ -28,111 +36,206 @@ export const PdfReconcileView: React.FC<PdfReconcileViewProps> = ({
   }, [pdfFile]);
 
   useEffect(() => {
-    if (workbookJson) {
-      const hiddenHost = document.createElement('div');
-      hiddenHost.style.position = 'absolute';
-      hiddenHost.style.left = '-9999px';
-      hiddenHost.style.width = '1000px';
-      hiddenHost.style.height = '600px';
-      document.body.appendChild(hiddenHost);
-      const wb = new GC.Spread.Sheets.Workbook(hiddenHost, { sheetCount: 0 });
-      wb.fromJSON(workbookJson);
-      const checkResults = runChecks(wb, defaultChecks);
+    if (workbookJson && checks.length > 0) {
+      const checkResults = runChecks(workbookJson, checks);
       setResults(checkResults);
-      wb.destroy();
-      document.body.removeChild(hiddenHost);
+    } else {
+      setResults([]);
     }
-  }, [workbookJson]);
+  }, [workbookJson, checks]);
+
+  // Auto-add checks when PDF is uploaded
+  useEffect(() => {
+    if (pdfFile && checks.length === 0 && workbookJson) {
+      setChecks([
+        {
+          id: 'total-assets',
+          description: 'Total Assets',
+          pdfPage: 5,
+          pdfValue: 185420,
+          workbookRefs: [{ sheet: 'A3.4_BS', cell: 'K69' }, { sheet: 'Summary', cell: 'I11' }],
+          allowSignFlip: false,
+          tolerance: 1,
+        },
+        {
+          id: 'retained-earnings',
+          description: 'Retained Earnings',
+          pdfPage: 8,
+          pdfValue: -9917598,
+          workbookRefs: [{ sheet: 'A2_RE Rollforward', cell: 'K51' }],
+          allowSignFlip: true,
+          tolerance: 1,
+        },
+        {
+          id: 'gross-receipts',
+          description: 'Gross Receipts',
+          pdfPage: 1,
+          pdfValue: 5131,
+          workbookRefs: [{ sheet: 'A3_P&L', cell: 'K10' }],
+          allowSignFlip: true,
+          tolerance: 1,
+        },
+        {
+          id: 'officer-compensation',
+          description: 'Officer Compensation',
+          pdfPage: 1,
+          pdfValue: 1805000,
+          workbookRefs: [{ sheet: 'A3_P&L', cell: 'K20' }],
+          allowSignFlip: false,
+          tolerance: 1,
+        },
+        {
+          id: 'total-deductions',
+          description: 'Total Deductions',
+          pdfPage: 1,
+          pdfValue: 3745492,
+          workbookRefs: [{ sheet: 'Summary', cell: 'I15' }],
+          allowSignFlip: true,
+          tolerance: 2,
+        },
+      ]);
+    }
+  }, [pdfFile, workbookJson, checks.length]);
+
+  // Navigate PDF to the selected check's page
+  useEffect(() => {
+    if (!pdfUrl || !results[selectedResult]) return;
+    const page = results[selectedResult].check.pdfPage;
+    if (iframeRef.current) {
+      iframeRef.current.src = `${pdfUrl}#page=${page}`;
+    }
+  }, [selectedResult, pdfUrl, results]);
+
+  const sheetNames = workbookJson ? Object.keys(workbookJson.sheets || {}) : [];
+
+  const addCheck = () => {
+    const pdfVal = parseFloat(newPdfValue.replace(/[,$]/g, ''));
+    if (!newDesc || isNaN(pdfVal) || !newSheet || !newCell) return;
+    setChecks([...checks, {
+      id: `check-${Date.now()}`,
+      description: newDesc,
+      pdfPage: parseInt(newPdfPage) || 1,
+      pdfValue: pdfVal,
+      workbookRefs: [{ sheet: newSheet, cell: newCell.toUpperCase() }],
+      allowSignFlip: newSignFlip,
+      tolerance: 1,
+    }]);
+    setNewDesc('');
+    setNewPdfValue('');
+    setNewCell('');
+    setNewSignFlip(false);
+    setShowAddForm(false);
+  };
+
+  const removeCheck = (id: string) => {
+    setChecks(checks.filter((c) => c.id !== id));
+  };
 
   const passCount = results.filter((r) => r.status === 'pass').length;
   const failCount = results.filter((r) => r.status === 'fail').length;
+  const selected = results[selectedResult];
 
   return (
-    <div style={{ display: 'flex', height: '100%' }}>
-      <div style={{ width: 380, borderRight: '1px solid #e5e7eb', overflowY: 'auto', padding: 16 }}>
-        <h3 style={{ margin: '0 0 12px', fontSize: 16, color: '#1f2937' }}>
-          PDF ↔ Workbook Reconciliation
-        </h3>
-
-        {!pdfFile && (
-          <button onClick={onRequestPdf} style={uploadBtnStyle}>
-            Upload PDF Return
+    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+      {/* Left sidebar - same style as diff sidebar */}
+      <div className="diff-sidebar" style={{ top: 49 }}>
+        {!pdfFile ? (
+          <button onClick={onRequestPdf} style={{ padding: '6px 10px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 11, width: '100%', marginBottom: 8 }}>
+            Upload PDF
           </button>
+        ) : (
+          <p style={{ fontSize: 10, color: '#059669', margin: '0 0 6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✓ {pdfFile.name}</p>
         )}
 
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16, marginTop: 12 }}>
-          <div style={{ ...statPill, borderColor: '#10b981' }}>
-            <span style={{ color: '#10b981', fontWeight: 700 }}>{passCount}</span> Pass
+        {results.length > 0 && (
+          <div style={{ marginBottom: 6, fontSize: 10 }}>
+            <span style={{ color: '#16a34a', fontWeight: 700 }}>{passCount} pass</span>{' '}
+            <span style={{ color: '#dc2626', fontWeight: 700 }}>{failCount} fail</span>
           </div>
-          <div style={{ ...statPill, borderColor: '#ef4444' }}>
-            <span style={{ color: '#ef4444', fontWeight: 700 }}>{failCount}</span> Fail
+        )}
+
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          style={{ padding: '3px 6px', border: '1px solid #d1d5db', borderRadius: 3, cursor: 'pointer', fontSize: 10, background: '#f9fafb', marginBottom: 6, width: '100%' }}
+        >
+          {showAddForm ? 'Cancel' : '+ Add Check'}
+        </button>
+
+        {showAddForm && (
+          <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 4, padding: 6, marginBottom: 6 }}>
+            <input placeholder="Description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} style={inputStyle} />
+            <input placeholder="PDF value" value={newPdfValue} onChange={(e) => setNewPdfValue(e.target.value)} style={inputStyle} />
+            <input placeholder="Page #" value={newPdfPage} onChange={(e) => setNewPdfPage(e.target.value)} style={inputStyle} />
+            <select value={newSheet} onChange={(e) => setNewSheet(e.target.value)} style={inputStyle}>
+              <option value="">Sheet...</option>
+              {sheetNames.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <input placeholder="Cell (e.g. K69)" value={newCell} onChange={(e) => setNewCell(e.target.value)} style={inputStyle} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: '#6b7280', marginBottom: 4 }}>
+              <input type="checkbox" checked={newSignFlip} onChange={(e) => setNewSignFlip(e.target.checked)} />
+              Sign flip
+            </label>
+            <button onClick={addCheck} style={{ padding: '4px 8px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer', fontSize: 10, width: '100%' }}>Add</button>
           </div>
-        </div>
+        )}
 
         {results.map((result, i) => (
           <div
             key={result.check.id}
             onClick={() => setSelectedResult(i)}
             style={{
-              padding: '10px 12px',
-              borderRadius: 6,
-              marginBottom: 6,
+              padding: '4px 6px',
+              borderRadius: 4,
+              marginBottom: 3,
               cursor: 'pointer',
-              backgroundColor: selectedResult === i ? '#f0f9ff' : '#fff',
-              border: `1px solid ${selectedResult === i ? '#93c5fd' : '#e5e7eb'}`,
+              backgroundColor: selectedResult === i ? '#eef2ff' : 'transparent',
+              border: selectedResult === i ? '1px solid #c7d2fe' : '1px solid transparent',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontSize: 11, color: result.status === 'pass' ? '#16a34a' : '#dc2626' }}>
                 {result.status === 'pass' ? '✓' : '✗'}
               </span>
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: result.status === 'pass' ? '#166534' : '#991b1b',
-                }}
-              >
+              <span style={{ fontSize: 10, fontWeight: 500, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {result.check.description}
               </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); removeCheck(result.check.id); }}
+                style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 12, padding: 0 }}
+              >×</button>
             </div>
-            <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4, marginLeft: 24 }}>
-              PDF value: {result.check.pdfValue.toLocaleString()}
-              {result.check.allowSignFlip && ' (sign flip allowed)'}
+            <div style={{ fontSize: 9, color: '#6b7280', marginLeft: 15 }}>
+              p.{result.check.pdfPage} · {result.check.pdfValue.toLocaleString()}
             </div>
           </div>
         ))}
+
+        {!pdfFile && checks.length === 0 && (
+          <div style={{ color: '#9ca3af', fontSize: 10, padding: 4 }}>Upload PDF to start</div>
+        )}
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {results[selectedResult] && (
-          <div style={{ padding: 16, borderBottom: '1px solid #e5e7eb' }}>
-            <h4 style={{ margin: '0 0 8px', fontSize: 14 }}>
-              {results[selectedResult].check.description}
-            </h4>
-            <div style={{ fontSize: 13, fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-              {results[selectedResult].message}
-            </div>
+      {/* Right: PDF takes all remaining space */}
+      <div style={{ marginLeft: 150, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {selected && (
+          <div style={{ padding: '6px 12px', borderBottom: '1px solid #e5e7eb', background: '#fff', flexShrink: 0, fontSize: 12 }}>
+            <strong>{selected.check.description}</strong> (Page {selected.check.pdfPage})
+            <span style={{ marginLeft: 12, fontFamily: 'monospace', color: selected.status === 'pass' ? '#166534' : '#991b1b' }}>
+              {selected.message.split('\n')[0]}
+            </span>
           </div>
         )}
 
         {pdfUrl ? (
           <iframe
-            src={`${pdfUrl}#page=${results[selectedResult]?.check.pdfPage || 1}`}
-            style={{ flex: 1, border: 'none' }}
+            ref={iframeRef}
+            src={`${pdfUrl}#page=${selected?.check.pdfPage || 1}`}
+            style={{ flex: 1, border: 'none', width: '100%' }}
             title="PDF Return"
           />
         ) : (
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#9ca3af',
-            }}
-          >
-            Upload a PDF to view the return alongside reconciliation results
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: 14 }}>
+            Upload a PDF to see it here
           </div>
         )}
       </div>
@@ -140,23 +243,11 @@ export const PdfReconcileView: React.FC<PdfReconcileViewProps> = ({
   );
 };
 
-const uploadBtnStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  backgroundColor: '#4f46e5',
-  color: '#fff',
-  border: 'none',
-  borderRadius: 6,
-  cursor: 'pointer',
-  fontSize: 13,
-  fontWeight: 500,
-};
-
-const statPill: React.CSSProperties = {
-  padding: '4px 12px',
-  borderRadius: 20,
-  border: '1.5px solid',
-  fontSize: 12,
-  display: 'flex',
-  alignItems: 'center',
-  gap: 4,
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '4px 6px',
+  border: '1px solid #d1d5db',
+  borderRadius: 3,
+  fontSize: 10,
+  marginBottom: 4,
 };
