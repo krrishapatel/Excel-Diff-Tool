@@ -84,13 +84,6 @@ export const SpreadViewer: React.FC<SpreadViewerProps> = ({
     }
   }, [sheetName]);
 
-  // Scroll to current diff
-  useEffect(() => {
-    if (!currentDiff || !scrollRef.current) return;
-    const el = scrollRef.current.querySelector(`[data-cell="${currentDiff.row},${currentDiff.col}"]`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-  }, [currentDiff]);
-
   if (rows.length === 0) {
     return (
       <div className="spread-panel">
@@ -105,7 +98,7 @@ export const SpreadViewer: React.FC<SpreadViewerProps> = ({
   return (
     <div className="spread-panel">
       <div className={`spread-panel-header ${side}`}>{label}</div>
-      <div className="sheet-scroll" ref={scrollRef}>
+      <div className="sheet-scroll" ref={scrollRef} key={sheetName}>
         <table className="sheet-table">
           <thead>
             <tr>

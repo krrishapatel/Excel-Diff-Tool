@@ -140,7 +140,7 @@ export const PdfReconcileView: React.FC<PdfReconcileViewProps> = ({
       {/* Left sidebar - same style as diff sidebar */}
       <div className="diff-sidebar" style={{ top: 49 }}>
         {!pdfFile ? (
-          <button onClick={onRequestPdf} style={{ padding: '6px 10px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 15, width: '100%', marginBottom: 8 }}>
+          <button onClick={onRequestPdf} style={{ padding: '6px 10px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14, width: '100%', marginBottom: 8 }}>
             Upload PDF
           </button>
         ) : (
@@ -171,7 +171,7 @@ export const PdfReconcileView: React.FC<PdfReconcileViewProps> = ({
               {sheetNames.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
             <input placeholder="Cell (e.g. K69)" value={newCell} onChange={(e) => setNewCell(e.target.value)} style={inputStyle} />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 15, color: '#6b7280', marginBottom: 4 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 14, color: '#6b7280', marginBottom: 4 }}>
               <input type="checkbox" checked={newSignFlip} onChange={(e) => setNewSignFlip(e.target.checked)} />
               Sign flip
             </label>
@@ -193,7 +193,7 @@ export const PdfReconcileView: React.FC<PdfReconcileViewProps> = ({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ fontSize: 15, color: result.status === 'pass' ? '#16a34a' : '#dc2626' }}>
+              <span style={{ fontSize: 14, color: result.status === 'pass' ? '#16a34a' : '#dc2626' }}>
                 {result.status === 'pass' ? '✓' : '✗'}
               </span>
               <span style={{ fontSize: 14, fontWeight: 500, color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -204,7 +204,7 @@ export const PdfReconcileView: React.FC<PdfReconcileViewProps> = ({
                 style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 14, padding: 0 }}
               >×</button>
             </div>
-            <div style={{ fontSize: 15, color: '#6b7280', marginLeft: 15 }}>
+            <div style={{ fontSize: 14, color: '#6b7280', marginLeft: 15 }}>
               p.{result.check.pdfPage} · {result.check.pdfValue.toLocaleString()}
             </div>
           </div>
@@ -216,7 +216,7 @@ export const PdfReconcileView: React.FC<PdfReconcileViewProps> = ({
       </div>
 
       {/* Right: PDF takes all remaining space, flush against sidebar */}
-      <div style={{ position: 'fixed', left: 240, top: 49, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ position: 'fixed', left: 340, top: 49, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {selected && (
           <div style={{ padding: '4px 12px', borderBottom: '1px solid #e5e7eb', background: '#fff', flexShrink: 0, fontSize: 14 }}>
             <strong>{selected.check.description}</strong> (Page {selected.check.pdfPage})

@@ -45,7 +45,7 @@ body {
   text-align: center;
   margin-bottom: 0;
   padding: 12px 20px;
-  padding-left: 260px;
+  padding-left: 280px;
   border-bottom: 1px solid #e5e7eb;
   background: #fff;
   display: flex;
@@ -162,18 +162,18 @@ body {
   left: 0;
   top: 49px;
   bottom: 0;
-  width: 240px;
+  width: 260px;
   border-right: 1px solid #e5e7eb;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 10px;
   background: #fff;
-  font-size: 11px;
+  font-size: 14px;
   z-index: 9999;
 }
 
 .diff-main {
-  margin-left: 240px;
+  margin-left: 340px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -193,19 +193,17 @@ body {
 /* Two spreadsheet panels side by side */
 .spread-container {
   flex: 1;
+  min-height: 0;
   display: flex;
   gap: 2px;
   background: #e5e7eb;
-  overflow: hidden;
 }
 
 .spread-panel {
-  flex: 1 1 50%;
-  min-width: 0;
-  max-width: 50%;
+  width: 50%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   background: #fff;
 }
 
@@ -231,8 +229,9 @@ body {
 /* The scrollable area that CONTAINS the table */
 .sheet-scroll {
   flex: 1;
-  overflow: auto;
+  overflow: scroll;
   min-height: 0;
+  min-width: 0;
 }
 
 .sheet-table {

@@ -20,7 +20,7 @@ export const DiffSummary: React.FC<DiffSummaryProps> = ({ diff, selectedSheet, o
         <span style={{ color: '#10b981', fontWeight: 700 }}>+{diff.summary.sheetsAdded}</span>
         <span style={{ color: '#ef4444', fontWeight: 700 }}>-{diff.summary.sheetsRemoved}</span>
       </div>
-      <p style={{ fontSize: 10, color: '#6b7280', margin: '0 0 8px' }}>
+      <p style={{ fontSize: 14, color: '#6b7280', margin: '0 0 8px' }}>
         {diff.summary.totalCellChanges.toLocaleString()} changes
       </p>
       {sortedSheets.map((sheet) => (
@@ -93,7 +93,7 @@ const SheetRow: React.FC<{ sheet: SheetDiff; isSelected: boolean; onClick: () =>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            fontSize: 11,
+            fontSize: 14,
             fontWeight: isSelected ? 600 : 400,
             color: '#1f2937',
             overflow: 'hidden',
@@ -104,7 +104,7 @@ const SheetRow: React.FC<{ sheet: SheetDiff; isSelected: boolean; onClick: () =>
           {sheet.name}
         </div>
         {total > 0 && (
-          <div style={{ fontSize: 11, color: '#6b7280' }}>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>
             {total} change{total !== 1 ? 's' : ''}
           </div>
         )}
