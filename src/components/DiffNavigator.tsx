@@ -7,6 +7,12 @@ interface DiffNavigatorProps {
   onNavigate: (index: number) => void;
   threshold?: number;
   onThresholdChange?: (value: number) => void;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+  searchMatchCount?: number;
+  searchMatchIndex?: number;
+  onSearchNext?: () => void;
+  onSearchPrev?: () => void;
 }
 
 function colToLetter(col: number): string {
@@ -31,7 +37,68 @@ export const DiffNavigator: React.FC<DiffNavigatorProps> = ({
   onNavigate,
   threshold,
   onThresholdChange,
+  searchQuery,
+  onSearchChange,
+  searchMatchCount,
+  searchMatchIndex,
+  onSearchNext,
+  onSearchPrev,
 }) => {
+  const searchControl = onSearchChange ? (
+    <div style={{ marginLeft: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div style={{ position: 'relative' }}>
+        <input
+          type="text"
+          placeholder="Search cell or value..."
+          value={searchQuery || ''}
+          onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && onSearchNext) {
+              e.preventDefault();
+              onSearchNext();
+            }
+          }}
+          style={{
+            width: 150,
+            padding: '3px 24px 3px 6px',
+            fontSize: 12,
+            border: '1px solid #d1d5db',
+            borderRadius: 4,
+            outline: 'none',
+          }}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => onSearchChange('')}
+            style={{
+              position: 'absolute',
+              right: 4,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 14,
+              color: '#6b7280',
+              padding: '0 2px',
+              lineHeight: 1,
+            }}
+          >
+            x
+          </button>
+        )}
+      </div>
+      {searchQuery && searchMatchCount !== undefined && searchMatchCount > 0 && (
+        <>
+          <span style={{ fontSize: 11, color: '#6b7280', whiteSpace: 'nowrap' }}>
+            {(searchMatchIndex ?? 0) + 1}/{searchMatchCount}
+          </span>
+          <button onClick={onSearchPrev} style={{ ...navBtnStyle, padding: '2px 6px', fontSize: 10 }}>↑</button>
+          <button onClick={onSearchNext} style={{ ...navBtnStyle, padding: '2px 6px', fontSize: 10 }}>↓</button>
+        </>
+      )}
+    </div>
+  ) : null;
   const thresholdControl = onThresholdChange ? (
     <div style={{ marginLeft: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
       <label style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, whiteSpace: 'nowrap' }}>
@@ -63,7 +130,10 @@ export const DiffNavigator: React.FC<DiffNavigatorProps> = ({
         <span style={{ color: '#6b7280', fontSize: 13 }}>
           No differences in this sheet
         </span>
-        {thresholdControl}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {thresholdControl}
+          {searchControl}
+        </div>
       </div>
     );
   }
@@ -98,6 +168,7 @@ export const DiffNavigator: React.FC<DiffNavigatorProps> = ({
       )}
 
       {thresholdControl}
+      {searchControl}
     </div>
   );
 };

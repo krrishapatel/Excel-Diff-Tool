@@ -216,7 +216,7 @@ export const PdfReconcileView: React.FC<PdfReconcileViewProps> = ({
       </div>
 
       {/* Right: PDF takes all remaining space, flush against sidebar */}
-      <div style={{ position: 'fixed', left: 340, top: 49, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ position: 'fixed', left: 260, top: 49, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {selected && (
           <div style={{ padding: '4px 12px', borderBottom: '1px solid #e5e7eb', background: '#fff', flexShrink: 0, fontSize: 14 }}>
             <strong>{selected.check.description}</strong> (Page {selected.check.pdfPage})

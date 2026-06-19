@@ -23,6 +23,9 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [threshold, setThreshold] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [syncScrollTop, setSyncScrollTop] = useState<number | undefined>(undefined);
+  const [syncScrollLeft, setSyncScrollLeft] = useState<number | undefined>(undefined);
 
   const oldJsonRef = useRef<any>(null);
   const newJsonRef = useRef<any>(null);
@@ -104,7 +107,69 @@ function App() {
     });
   }, [allCurrentDiffs, threshold]);
 
+  // Helper to convert column letter(s) to 0-based index
+  const letterToCol = (letters: string): number => {
+    let col = 0;
+    for (let i = 0; i < letters.length; i++) {
+      col = col * 26 + (letters.charCodeAt(i) - 64);
+    }
+    return col - 1;
+  };
+
+  // Helper to convert col index to letter(s)
+  const colToLetter = (col: number): string => {
+    let result = '';
+    let c = col;
+    while (c >= 0) {
+      result = String.fromCharCode((c % 26) + 65) + result;
+      c = Math.floor(c / 26) - 1;
+    }
+    return result;
+  };
+
+  const cellRefPattern = /^([A-Za-z]{1,3})(\d+)$/;
+
   const currentDiffs = filteredDiffs;
+
+  // Find all search matches
+  const searchMatches = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.trim();
+    const cellMatch = q.match(cellRefPattern);
+    if (cellMatch) {
+      const refCol = letterToCol(cellMatch[1].toUpperCase());
+      const refRow = parseInt(cellMatch[2], 10) - 1;
+      if (refRow >= 0 && refCol >= 0) return [{ row: refRow, col: refCol }];
+    }
+    const qLower = q.toLowerCase();
+    const matches: { row: number; col: number }[] = [];
+    for (const d of filteredDiffs) {
+      const oldStr = d.oldValue != null ? String(d.oldValue).toLowerCase() : '';
+      const newStr = d.newValue != null ? String(d.newValue).toLowerCase() : '';
+      if (oldStr.includes(qLower) || newStr.includes(qLower)) {
+        matches.push({ row: d.row, col: d.col });
+      }
+    }
+    return matches;
+  }, [searchQuery, filteredDiffs]);
+
+  const [searchMatchIndex, setSearchMatchIndex] = useState(0);
+
+  useEffect(() => {
+    setSearchMatchIndex(0);
+  }, [searchQuery]);
+
+  const searchHighlight = searchMatches.length > 0 ? searchMatches[searchMatchIndex % searchMatches.length] : null;
+
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query);
+    setCurrentDiffIndex(0);
+  }, []);
+
+  const handleSyncScroll = useCallback((scrollTop: number, scrollLeft: number) => {
+    setSyncScrollTop(scrollTop);
+    setSyncScrollLeft(scrollLeft);
+  }, []);
 
   const handleExportCsv = useCallback(() => {
     if (!diff) return;
@@ -160,6 +225,8 @@ function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (mode !== 'diff' || currentDiffs.length === 0) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.key === 'ArrowDown' || e.key === 'j') {
         e.preventDefault();
         setCurrentDiffIndex((i) => Math.min(currentDiffs.length - 1, i + 1));
@@ -282,6 +349,12 @@ function App() {
             onNavigate={setCurrentDiffIndex}
             threshold={threshold}
             onThresholdChange={handleThresholdChange}
+            searchQuery={searchQuery}
+            onSearchChange={handleSearchChange}
+            searchMatchCount={searchMatches.length}
+            searchMatchIndex={searchMatchIndex}
+            onSearchNext={() => setSearchMatchIndex((i) => (i + 1) % Math.max(1, searchMatches.length))}
+            onSearchPrev={() => setSearchMatchIndex((i) => (i - 1 + searchMatches.length) % Math.max(1, searchMatches.length))}
           />
 
           <div className="spread-container">
@@ -292,6 +365,10 @@ function App() {
               currentDiffIndex={currentDiffIndex}
               label={oldFile?.name || 'Prior Year'}
               side="old"
+              syncScrollTop={syncScrollTop}
+              syncScrollLeft={syncScrollLeft}
+              onSyncScroll={handleSyncScroll}
+              searchHighlight={searchHighlight}
             />
             <SpreadViewer
               workbookJson={newJsonRef.current}
@@ -300,6 +377,10 @@ function App() {
               currentDiffIndex={currentDiffIndex}
               label={newFile?.name || 'Current Year'}
               side="new"
+              syncScrollTop={syncScrollTop}
+              syncScrollLeft={syncScrollLeft}
+              onSyncScroll={handleSyncScroll}
+              searchHighlight={searchHighlight}
             />
           </div>
 

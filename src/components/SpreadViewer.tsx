@@ -8,6 +8,10 @@ interface SpreadViewerProps {
   currentDiffIndex: number;
   label: string;
   side: 'old' | 'new';
+  syncScrollTop?: number;
+  syncScrollLeft?: number;
+  onSyncScroll?: (scrollTop: number, scrollLeft: number) => void;
+  searchHighlight?: { row: number; col: number } | null;
 }
 
 function colToLetter(col: number): string {
@@ -64,8 +68,13 @@ export const SpreadViewer: React.FC<SpreadViewerProps> = ({
   currentDiffIndex,
   label,
   side,
+  syncScrollTop,
+  syncScrollLeft,
+  onSyncScroll,
+  searchHighlight,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isScrollingRef = useRef(false);
   const { rows, maxCol } = useMemo(() => getSheetData(workbookJson, sheetName), [workbookJson, sheetName]);
 
   const diffSet = useMemo(() => {
@@ -84,6 +93,52 @@ export const SpreadViewer: React.FC<SpreadViewerProps> = ({
     }
   }, [sheetName]);
 
+  // Linked scroll: sync both vertical AND horizontal from other panel
+  useEffect(() => {
+    if (syncScrollTop !== undefined && scrollRef.current) {
+      const topDiff = Math.abs(scrollRef.current.scrollTop - syncScrollTop);
+      if (topDiff > 1) {
+        isScrollingRef.current = true;
+        scrollRef.current.scrollTop = syncScrollTop;
+        requestAnimationFrame(() => {
+          isScrollingRef.current = false;
+        });
+      }
+    }
+  }, [syncScrollTop]);
+
+  useEffect(() => {
+    if (syncScrollLeft !== undefined && scrollRef.current) {
+      const leftDiff = Math.abs(scrollRef.current.scrollLeft - syncScrollLeft);
+      if (leftDiff > 1) {
+        isScrollingRef.current = true;
+        scrollRef.current.scrollLeft = syncScrollLeft;
+        requestAnimationFrame(() => {
+          isScrollingRef.current = false;
+        });
+      }
+    }
+  }, [syncScrollLeft]);
+
+  const handleScroll = () => {
+    if (isScrollingRef.current) return;
+    if (scrollRef.current && onSyncScroll) {
+      onSyncScroll(scrollRef.current.scrollTop, scrollRef.current.scrollLeft);
+    }
+  };
+
+  // Scroll to search highlight cell
+  useEffect(() => {
+    if (searchHighlight && scrollRef.current) {
+      const cell = scrollRef.current.querySelector(
+        `[data-cell="${searchHighlight.row},${searchHighlight.col}"]`
+      ) as HTMLElement | null;
+      if (cell) {
+        cell.scrollIntoView({ block: 'center', inline: 'center' });
+      }
+    }
+  }, [searchHighlight]);
+
   if (rows.length === 0) {
     return (
       <div className="spread-panel">
@@ -98,7 +153,7 @@ export const SpreadViewer: React.FC<SpreadViewerProps> = ({
   return (
     <div className="spread-panel">
       <div className={`spread-panel-header ${side}`}>{label}</div>
-      <div className="sheet-scroll" ref={scrollRef} key={sheetName}>
+      <div className="sheet-scroll" ref={scrollRef} key={sheetName} onScroll={handleScroll}>
         <table className="sheet-table">
           <thead>
             <tr>
@@ -116,6 +171,7 @@ export const SpreadViewer: React.FC<SpreadViewerProps> = ({
                   const key = `${r},${c}`;
                   const entry = diffSet.get(key);
                   const isCurrent = currentDiff?.row === r && currentDiff?.col === c;
+                  const isSearchTarget = searchHighlight?.row === r && searchHighlight?.col === c;
 
                   let cls = '';
                   if (isCurrent) cls = 'cell-current';
@@ -125,8 +181,12 @@ export const SpreadViewer: React.FC<SpreadViewerProps> = ({
                     else if (entry.type === 'changed') cls = 'cell-changed';
                   }
 
+                  const searchStyle: React.CSSProperties | undefined = isSearchTarget
+                    ? { outline: '2px solid #6366f1', backgroundColor: '#eef2ff' }
+                    : undefined;
+
                   return (
-                    <td key={c} className={cls || undefined} data-cell={key}>
+                    <td key={c} className={cls || undefined} data-cell={key} style={searchStyle}>
                       {formatValue(val)}
                     </td>
                   );
