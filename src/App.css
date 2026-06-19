@@ -182,10 +182,10 @@ body {
 
 .diff-nav-bar {
   border-bottom: 1px solid #e5e7eb;
-  padding: 8px 16px;
+  padding: 6px 8px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   background: #fff;
   flex-shrink: 0;
 }
@@ -195,8 +195,8 @@ body {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 2px;
-  background: #e5e7eb;
+  gap: 1px;
+  background: #d1d5db;
 }
 
 .spread-panel {
@@ -211,8 +211,8 @@ body {
 }
 
 .spread-panel-header {
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 4px 6px;
+  font-size: 11px;
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -305,10 +305,21 @@ body {
   color: #991b1b;
 }
 
+/* Drag handle between sheets and diff list */
+.resize-handle {
+  height: 6px;
+  background: #e5e7eb;
+  cursor: row-resize;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.resize-handle:hover {
+  background: #93c5fd;
+}
+
 /* Diff list (bottom table) */
 .diff-list-container {
-  max-height: 220px;
+  height: 100%;
   overflow-y: auto;
-  border-top: 1px solid #e5e7eb;
-  flex-shrink: 0;
 }

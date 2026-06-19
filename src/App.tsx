@@ -26,6 +26,33 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [syncScrollTop, setSyncScrollTop] = useState<number | undefined>(undefined);
   const [syncScrollLeft, setSyncScrollLeft] = useState<number | undefined>(undefined);
+  const [spreadPct, setSpreadPct] = useState(70);
+  const resizeRef = useRef<{ startY: number; startPct: number } | null>(null);
+  const diffMainRef = useRef<HTMLDivElement>(null);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    resizeRef.current = { startY: e.clientY, startPct: spreadPct };
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!resizeRef.current || !diffMainRef.current) return;
+      const containerHeight = diffMainRef.current.clientHeight;
+      const deltaY = ev.clientY - resizeRef.current.startY;
+      const deltaPct = (deltaY / containerHeight) * 100;
+      const newPct = Math.min(90, Math.max(20, resizeRef.current.startPct + deltaPct));
+      setSpreadPct(newPct);
+    };
+    const handleMouseUp = () => {
+      resizeRef.current = null;
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  }, [spreadPct]);
 
   const oldJsonRef = useRef<any>(null);
   const newJsonRef = useRef<any>(null);
@@ -342,7 +369,7 @@ function App() {
           />
         )}
 
-        <div className="diff-main">
+        <div className="diff-main" ref={diffMainRef}>
           <DiffNavigator
             diffs={currentDiffs}
             currentIndex={currentDiffIndex}
@@ -357,7 +384,7 @@ function App() {
             onSearchPrev={() => setSearchMatchIndex((i) => (i - 1 + searchMatches.length) % Math.max(1, searchMatches.length))}
           />
 
-          <div className="spread-container">
+          <div className="spread-container" style={{ flex: `${spreadPct} 0 0%` }}>
             <SpreadViewer
               workbookJson={oldJsonRef.current}
               sheetName={selectedSheet || ''}
@@ -384,11 +411,18 @@ function App() {
             />
           </div>
 
-          <DiffListView
-            diffs={currentDiffs}
-            currentIndex={currentDiffIndex}
-            onSelect={setCurrentDiffIndex}
+          <div
+            className="resize-handle"
+            onMouseDown={handleResizeStart}
           />
+
+          <div style={{ flex: `${100 - spreadPct} 0 0%`, overflow: 'hidden' }}>
+            <DiffListView
+              diffs={currentDiffs}
+              currentIndex={currentDiffIndex}
+              onSelect={setCurrentDiffIndex}
+            />
+          </div>
         </div>
       </div>
     </div>
