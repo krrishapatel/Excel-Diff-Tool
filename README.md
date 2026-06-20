@@ -44,6 +44,9 @@ Opens at `http://localhost:3000`.
 - **Linked scroll** — both panels scroll together (vertical and horizontal) so rows stay aligned
 - **Draggable resizer** — adjust the split between sheet panels and diff list table
 - **Search with navigation** — find cells by reference or value, cycle through matches with ↑↓
+- **Percentage change column** — diff list shows % change for numeric values, instantly showing magnitude
+- **Dark mode** — full dark theme via moon/sun toggle, persists across views
+- **Diff type filter pills** — toggle Changed/Added/Removed to focus review on specific change types
 
 ### PDF Reconciliation (Extension)
 - Checks auto-populate when PDF is uploaded (configurable — users can add/remove checks via UI)
