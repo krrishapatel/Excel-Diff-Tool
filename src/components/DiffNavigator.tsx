@@ -13,6 +13,8 @@ interface DiffNavigatorProps {
   searchMatchIndex?: number;
   onSearchNext?: () => void;
   onSearchPrev?: () => void;
+  activeTypes?: Set<string>;
+  onToggleType?: (type: string) => void;
 }
 
 function colToLetter(col: number): string {
@@ -43,6 +45,8 @@ export const DiffNavigator: React.FC<DiffNavigatorProps> = ({
   searchMatchIndex,
   onSearchNext,
   onSearchPrev,
+  activeTypes,
+  onToggleType,
 }) => {
   const searchControl = onSearchChange ? (
     <div style={{ marginLeft: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -99,6 +103,37 @@ export const DiffNavigator: React.FC<DiffNavigatorProps> = ({
       )}
     </div>
   ) : null;
+  const typeFilterPills = onToggleType ? (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 12 }}>
+      {(['changed', 'added', 'removed'] as const).map((type) => {
+        const colors = { changed: '#f59e0b', added: '#10b981', removed: '#ef4444' };
+        const color = colors[type];
+        const isActive = activeTypes?.has(type) ?? true;
+        return (
+          <button
+            key={type}
+            onClick={() => onToggleType(type)}
+            style={{
+              padding: '2px 8px',
+              fontSize: 11,
+              fontWeight: 600,
+              borderRadius: 10,
+              border: `1.5px solid ${color}`,
+              backgroundColor: isActive ? color + '20' : 'transparent',
+              color: isActive ? color : color + '60',
+              cursor: 'pointer',
+              textTransform: 'capitalize',
+              opacity: isActive ? 1 : 0.5,
+              transition: 'all 0.15s',
+            }}
+          >
+            {type}
+          </button>
+        );
+      })}
+    </div>
+  ) : null;
+
   const thresholdControl = onThresholdChange ? (
     <div style={{ marginLeft: 16, display: 'flex', alignItems: 'center', gap: 4 }}>
       <label style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, whiteSpace: 'nowrap' }}>
@@ -131,6 +166,7 @@ export const DiffNavigator: React.FC<DiffNavigatorProps> = ({
           No differences in this sheet
         </span>
         <div style={{ display: 'flex', alignItems: 'center' }}>
+          {typeFilterPills}
           {thresholdControl}
           {searchControl}
         </div>
@@ -167,6 +203,7 @@ export const DiffNavigator: React.FC<DiffNavigatorProps> = ({
         </div>
       )}
 
+      {typeFilterPills}
       {thresholdControl}
       {searchControl}
     </div>

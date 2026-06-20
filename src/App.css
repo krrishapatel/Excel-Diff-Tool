@@ -323,3 +323,134 @@ body {
   height: 100%;
   overflow-y: auto;
 }
+
+/* =============================================
+   DARK MODE
+   ============================================= */
+.app-container.dark {
+  background: #1f2937;
+  color: #f3f4f6;
+}
+
+.app-container.dark .app-header.compact {
+  background: #111827;
+  border-bottom-color: #374151;
+}
+
+.app-container.dark .app-header.compact h1 {
+  color: #f3f4f6;
+}
+
+.app-container.dark .mode-nav {
+  background: #374151;
+}
+
+.app-container.dark .mode-nav button {
+  color: #9ca3af;
+}
+
+.app-container.dark .mode-nav button:hover {
+  color: #f3f4f6;
+}
+
+.app-container.dark .mode-nav button.active {
+  background: #1f2937;
+  color: #f3f4f6;
+  box-shadow: none;
+}
+
+.app-container.dark .reset-btn {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f3f4f6;
+}
+
+.app-container.dark .reset-btn:hover {
+  background: #4b5563;
+}
+
+.app-container.dark .diff-sidebar {
+  background: #111827;
+  border-right-color: #374151;
+  color: #e5e7eb;
+}
+
+.app-container.dark .diff-nav-bar {
+  background: #111827;
+  border-bottom-color: #374151;
+  color: #e5e7eb;
+}
+
+.app-container.dark .spread-container {
+  background: #374151;
+}
+
+.app-container.dark .spread-panel {
+  background: #1f2937;
+}
+
+.app-container.dark .spread-panel-header.old {
+  background-color: #451a1a;
+  border-bottom-color: #991b1b;
+  color: #fca5a5;
+}
+
+.app-container.dark .spread-panel-header.new {
+  background-color: #14332a;
+  border-bottom-color: #166534;
+  color: #86efac;
+}
+
+.app-container.dark .sheet-table {
+  color: #e5e7eb;
+}
+
+.app-container.dark .sheet-table th,
+.app-container.dark .sheet-table td {
+  border-color: #374151;
+}
+
+.app-container.dark .sheet-table .col-header {
+  background: #111827;
+  color: #9ca3af;
+}
+
+.app-container.dark .sheet-table .corner-header {
+  background: #111827;
+}
+
+.app-container.dark .sheet-table .row-header {
+  background: #111827;
+  color: #9ca3af;
+}
+
+.app-container.dark .cell-changed {
+  background: #78350f;
+}
+
+.app-container.dark .cell-added {
+  background: #064e3b;
+}
+
+.app-container.dark .cell-removed {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+.app-container.dark .cell-current {
+  background: #854d0e !important;
+  outline-color: #d97706;
+}
+
+.app-container.dark .resize-handle {
+  background: #374151;
+}
+
+.app-container.dark .resize-handle:hover {
+  background: #60a5fa;
+}
+
+.app-container.dark .diff-list-container {
+  background: #1f2937;
+  color: #e5e7eb;
+}

@@ -25,8 +25,11 @@ Opens at `http://localhost:3000`.
    - Draggable divider between panels and table to resize
 4. **Search** — type a cell reference (e.g., `K69`) or value (e.g., `185420`) to find and highlight matching cells with ↑↓ navigation
 5. **Filter** — set a materiality threshold (Min $) to hide changes below a dollar amount
-6. **Export** — download a CSV report of all changes across all sheets
-7. **PDF Reconciliation** — switch to the reconciliation tab, upload the PDF return, and verify workbook values match the filed return
+6. **Diff type pills** — toggle Changed/Added/Removed filters to focus on specific change types
+7. **Export** — download a CSV report of all changes across all sheets
+8. **Dark mode** — moon/sun toggle in the top right
+9. **Keyboard shortcuts** — `j`/`k` or arrows to navigate diffs, `?` to view all shortcuts
+10. **PDF Reconciliation** — switch to the reconciliation tab, upload the PDF return, and verify workbook values match the filed return
 
 ## Design Decisions
 
@@ -59,7 +62,7 @@ Opens at `http://localhost:3000`.
 
 - **Formula diffing** — compare formulas (not just computed values) to catch logic changes
 - **Fuzzy sheet matching** — handle renamed sheets (e.g., "A5.3 AMT Dep" → "A5.3 AMT NBV") via similarity scoring
-- **Diff type filter** — toggle buttons to show only Changed/Added/Removed
 - **PDF text extraction** — use pdf.js to auto-extract values from the tax return instead of manual check configuration
 - **Web Worker diffing** — move diff computation off the main thread for very large workbooks
 - **Batch reconciliation** — run checks across multiple returns simultaneously
+- **Comment/annotation system** — let reviewers leave notes on specific diffs for team handoff

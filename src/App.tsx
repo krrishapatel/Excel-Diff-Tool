@@ -27,6 +27,11 @@ function App() {
   const [syncScrollTop, setSyncScrollTop] = useState<number | undefined>(undefined);
   const [syncScrollLeft, setSyncScrollLeft] = useState<number | undefined>(undefined);
   const [spreadPct, setSpreadPct] = useState(70);
+  const [darkMode, setDarkMode] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [activeTypes, setActiveTypes] = useState<Set<'changed' | 'added' | 'removed'>>(
+    () => new Set(['changed', 'added', 'removed'] as const)
+  );
   const resizeRef = useRef<{ startY: number; startPct: number } | null>(null);
   const diffMainRef = useRef<HTMLDivElement>(null);
 
@@ -156,7 +161,25 @@ function App() {
 
   const cellRefPattern = /^([A-Za-z]{1,3})(\d+)$/;
 
-  const currentDiffs = filteredDiffs;
+  const currentDiffs = useMemo(() => {
+    return filteredDiffs.filter((d) => activeTypes.has(d.type));
+  }, [filteredDiffs, activeTypes]);
+
+  const handleToggleType = useCallback((type: string) => {
+    setActiveTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type as 'changed' | 'added' | 'removed')) {
+        // Don't allow disabling all types
+        if (next.size > 1) {
+          next.delete(type as 'changed' | 'added' | 'removed');
+        }
+      } else {
+        next.add(type as 'changed' | 'added' | 'removed');
+      }
+      return next;
+    });
+    setCurrentDiffIndex(0);
+  }, []);
 
   // Find all search matches
   const searchMatches = useMemo(() => {
@@ -251,9 +274,21 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (mode !== 'diff' || currentDiffs.length === 0) return;
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      if (e.key === '?') {
+        e.preventDefault();
+        setShowShortcuts((v) => !v);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowShortcuts(false);
+        return;
+      }
+
+      if (mode !== 'diff' || currentDiffs.length === 0) return;
       if (e.key === 'ArrowDown' || e.key === 'j') {
         e.preventDefault();
         setCurrentDiffIndex((i) => Math.min(currentDiffs.length - 1, i + 1));
@@ -329,8 +364,68 @@ function App() {
     );
   }
 
+  const shortcutsModal = showShortcuts ? (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+      }}
+      onClick={() => setShowShortcuts(false)}
+    >
+      <div
+        style={{
+          background: darkMode ? '#1f2937' : '#fff',
+          color: darkMode ? '#f3f4f6' : '#1f2937',
+          borderRadius: 8,
+          padding: '24px 32px',
+          minWidth: 280,
+          boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 16 }}>Keyboard Shortcuts</h3>
+        <table style={{ fontSize: 14, borderCollapse: 'collapse', width: '100%' }}>
+          <tbody>
+            {[
+              ['j / ↓', 'Next diff'],
+              ['k / ↑', 'Previous diff'],
+              ['?', 'Show/hide this panel'],
+              ['Esc', 'Close panel'],
+            ].map(([key, desc]) => (
+              <tr key={key}>
+                <td style={{ padding: '4px 12px 4px 0', fontFamily: 'monospace', fontWeight: 600 }}>{key}</td>
+                <td style={{ padding: '4px 0', color: darkMode ? '#9ca3af' : '#6b7280' }}>{desc}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <button
+          onClick={() => setShowShortcuts(false)}
+          style={{
+            marginTop: 16,
+            padding: '6px 14px',
+            border: `1px solid ${darkMode ? '#374151' : '#d1d5db'}`,
+            borderRadius: 4,
+            background: darkMode ? '#374151' : '#f3f4f6',
+            color: darkMode ? '#f3f4f6' : '#374151',
+            cursor: 'pointer',
+            fontSize: 13,
+          }}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div className="app-container full">
+    <div className={`app-container full${darkMode ? ' dark' : ''}`}>
+      {shortcutsModal}
       <header className="app-header compact">
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <h1>Excel Workbook Diff</h1>
@@ -347,12 +442,26 @@ function App() {
           <button
             className="reset-btn"
             onClick={handleExportCsv}
-            style={{ backgroundColor: '#059669', borderColor: '#059669' }}
+            style={{ backgroundColor: '#059669', borderColor: '#059669', color: '#fff' }}
           >
             Download Report
           </button>
           <button className="reset-btn" onClick={() => { setMode('upload'); setDiff(null); }}>
             New Comparison
+          </button>
+          <button
+            onClick={() => setDarkMode((d) => !d)}
+            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 20,
+              padding: '4px 8px',
+              borderRadius: 4,
+            }}
+          >
+            {darkMode ? '☀️' : '🌙'}
           </button>
         </div>
       </header>
@@ -382,6 +491,8 @@ function App() {
             searchMatchIndex={searchMatchIndex}
             onSearchNext={() => setSearchMatchIndex((i) => (i + 1) % Math.max(1, searchMatches.length))}
             onSearchPrev={() => setSearchMatchIndex((i) => (i - 1 + searchMatches.length) % Math.max(1, searchMatches.length))}
+            activeTypes={activeTypes}
+            onToggleType={handleToggleType}
           />
 
           <div className="spread-container" style={{ flex: `${spreadPct} 0 0%` }}>
