@@ -97,14 +97,22 @@ export const PdfReconcileView: React.FC<PdfReconcileViewProps> = ({
     }
   }, [pdfFile, workbookJson, checks.length]);
 
-  // Navigate PDF to the selected check's page
+  // Navigate PDF to the selected check's page and highlight the value
+  const [pdfNavKey, setPdfNavKey] = useState(0);
   useEffect(() => {
     if (!pdfUrl || !results[selectedResult]) return;
-    const page = results[selectedResult].check.pdfPage;
+    const check = results[selectedResult].check;
+    const page = check.pdfPage;
+    const searchValue = Math.abs(check.pdfValue).toLocaleString();
     if (iframeRef.current) {
-      iframeRef.current.src = `${pdfUrl}#page=${page}`;
+      iframeRef.current.src = '';
+      setTimeout(() => {
+        if (iframeRef.current) {
+          iframeRef.current.src = `${pdfUrl}#page=${page}&search=${searchValue}`;
+        }
+      }, 50);
     }
-  }, [selectedResult, pdfUrl, results]);
+  }, [selectedResult, pdfUrl, results, pdfNavKey]);
 
   const sheetNames = workbookJson ? Object.keys(workbookJson.sheets || {}) : [];
 
@@ -182,7 +190,7 @@ export const PdfReconcileView: React.FC<PdfReconcileViewProps> = ({
         {results.map((result, i) => (
           <div
             key={result.check.id}
-            onClick={() => setSelectedResult(i)}
+            onClick={() => { setSelectedResult(i); setPdfNavKey((k) => k + 1); }}
             style={{
               padding: '4px 6px',
               borderRadius: 4,
