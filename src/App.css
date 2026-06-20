@@ -31,14 +31,17 @@ body {
 
 .app-header h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 30px;
   color: #1f2937;
+  letter-spacing: -0.5px;
 }
 
 .app-header p {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   color: #6b7280;
   font-size: 15px;
+  max-width: 420px;
+  line-height: 1.5;
 }
 
 .app-header.compact {
@@ -111,7 +114,8 @@ body {
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
 }
 
 .compare-btn:hover:not(:disabled) {
@@ -173,7 +177,7 @@ body {
 }
 
 .diff-main {
-  margin-left: 260px;
+  margin-left: 215px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -211,7 +215,7 @@ body {
 }
 
 .spread-panel-header {
-  padding: 4px 6px;
+  padding: 3px 4px;
   font-size: 11px;
   font-weight: 600;
   flex-shrink: 0;
@@ -232,7 +236,7 @@ body {
 /* The scrollable area that CONTAINS the table */
 .sheet-scroll {
   position: absolute;
-  top: 30px;
+  top: 24px;
   left: 0;
   right: 0;
   bottom: 0;

@@ -89,8 +89,20 @@ function matchSheets(
 
 function normalizeValue(val: any): any {
   if (val === null || val === undefined || val === '') return null;
-  if (typeof val === 'number') return Math.round(val * 100) / 100;
-  return val;
+  if (typeof val === 'number') {
+    if (isNaN(val)) return null;
+    return Math.round(val * 100) / 100;
+  }
+  if (typeof val === 'object') return JSON.stringify(val);
+  return String(val);
+}
+
+function valuesEqual(a: any, b: any): boolean {
+  if (a === b) return true;
+  if (a === null && b === null) return true;
+  if (a === null || b === null) return false;
+  if (typeof a === 'number' && typeof b === 'number') return a === b;
+  return String(a) === String(b);
 }
 
 function diffSheet(oldSheet: SheetData, newSheet: SheetData): CellDiff[] {
@@ -107,8 +119,7 @@ function diffSheet(oldSheet: SheetData, newSheet: SheetData): CellDiff[] {
         r < newSheet.rowCount && c < newSheet.colCount ? newSheet.rows[r]?.[c] : null
       );
 
-      if (oldVal === newVal) continue;
-      if (oldVal === null && newVal === null) continue;
+      if (valuesEqual(oldVal, newVal)) continue;
 
       let type: CellDiff['type'];
       if (oldVal === null) type = 'added';

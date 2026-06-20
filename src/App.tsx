@@ -306,7 +306,7 @@ function App() {
       <div className="app-container">
         <header className="app-header">
           <h1>Excel Workbook Diff</h1>
-          <p>Compare two .xlsx workbooks to identify changes across sheets</p>
+          <p>Upload two .xlsx workbooks to instantly see what changed, where, and by how much.</p>
         </header>
 
         <div className="upload-area">

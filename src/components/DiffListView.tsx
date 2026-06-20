@@ -24,6 +24,17 @@ function formatValue(val: any): string {
   return String(val);
 }
 
+function getPercentChange(oldVal: any, newVal: any): string | null {
+  const oldNum = typeof oldVal === 'number' ? oldVal : parseFloat(oldVal);
+  const newNum = typeof newVal === 'number' ? newVal : parseFloat(newVal);
+  if (isNaN(oldNum) || isNaN(newNum)) return null;
+  if (oldNum === 0) return newNum === 0 ? null : 'new';
+  const pct = ((newNum - oldNum) / Math.abs(oldNum)) * 100;
+  if (Math.abs(pct) > 9999) return null;
+  const sign = pct >= 0 ? '+' : '';
+  return `${sign}${pct.toFixed(1)}%`;
+}
+
 export const DiffListView: React.FC<DiffListViewProps> = ({ diffs, currentIndex, onSelect }) => {
   const typeColors = {
     changed: { bg: '#fef3c7', text: '#92400e', border: '#f59e0b' },
@@ -41,11 +52,13 @@ export const DiffListView: React.FC<DiffListViewProps> = ({ diffs, currentIndex,
             <th style={thStyle}>Type</th>
             <th style={thStyle}>Old Value</th>
             <th style={thStyle}>New Value</th>
+            <th style={thStyle}>% Change</th>
           </tr>
         </thead>
         <tbody>
           {diffs.slice(0, 500).map((diff, i) => {
             const colors = typeColors[diff.type];
+            const pct = diff.type === 'changed' ? getPercentChange(diff.oldValue, diff.newValue) : null;
             return (
               <tr
                 key={i}
@@ -77,6 +90,9 @@ export const DiffListView: React.FC<DiffListViewProps> = ({ diffs, currentIndex,
                 </td>
                 <td style={{ ...tdStyle, color: '#991b1b' }}>{formatValue(diff.oldValue)}</td>
                 <td style={{ ...tdStyle, color: '#166534' }}>{formatValue(diff.newValue)}</td>
+                <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 11, color: pct && pct.startsWith('-') ? '#dc2626' : pct ? '#059669' : '#9ca3af' }}>
+                  {pct || '—'}
+                </td>
               </tr>
             );
           })}
