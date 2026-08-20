@@ -12,6 +12,27 @@ import './App.css';
 
 type AppMode = 'upload' | 'diff' | 'reconcile';
 
+const CELL_REF_PATTERN = /^([A-Za-z]{1,3})(\d+)$/;
+
+// Module scope, so they are stable across renders and there is one copy of each.
+function letterToCol(letters: string): number {
+  let col = 0;
+  for (let i = 0; i < letters.length; i++) {
+    col = col * 26 + (letters.charCodeAt(i) - 64);
+  }
+  return col - 1;
+}
+
+function colToLetter(col: number): string {
+  let result = '';
+  let c = col;
+  while (c >= 0) {
+    result = String.fromCharCode((c % 26) + 65) + result;
+    c = Math.floor(c / 26) - 1;
+  }
+  return result;
+}
+
 function App() {
   const [mode, setMode] = useState<AppMode>('upload');
   const [oldFile, setOldFile] = useState<File | null>(null);
@@ -125,9 +146,12 @@ function App() {
   }, []);
 
   const selectedSheetDiff = diff?.sheets.find((s) => s.name === selectedSheet);
-  const allCurrentDiffs = selectedSheetDiff?.cellDiffs || [];
+  const sheetCellDiffs = selectedSheetDiff?.cellDiffs;
 
   const filteredDiffs = useMemo(() => {
+    // Read inside the memo. A `|| []` outside it is a fresh array every render,
+    // so the memo recomputed every render and cached nothing.
+    const allCurrentDiffs = sheetCellDiffs || [];
     if (threshold <= 0) return allCurrentDiffs;
     return allCurrentDiffs.filter((d: CellDiff) => {
       const oldNum = typeof d.oldValue === 'number' ? d.oldValue : parseFloat(d.oldValue);
@@ -137,29 +161,7 @@ function App() {
       const newVal = isNaN(newNum) ? 0 : newNum;
       return Math.abs(newVal - oldVal) >= threshold;
     });
-  }, [allCurrentDiffs, threshold]);
-
-  // Helper to convert column letter(s) to 0-based index
-  const letterToCol = (letters: string): number => {
-    let col = 0;
-    for (let i = 0; i < letters.length; i++) {
-      col = col * 26 + (letters.charCodeAt(i) - 64);
-    }
-    return col - 1;
-  };
-
-  // Helper to convert col index to letter(s)
-  const colToLetter = (col: number): string => {
-    let result = '';
-    let c = col;
-    while (c >= 0) {
-      result = String.fromCharCode((c % 26) + 65) + result;
-      c = Math.floor(c / 26) - 1;
-    }
-    return result;
-  };
-
-  const cellRefPattern = /^([A-Za-z]{1,3})(\d+)$/;
+  }, [sheetCellDiffs, threshold]);
 
   const currentDiffs = useMemo(() => {
     return filteredDiffs.filter((d) => activeTypes.has(d.type));
@@ -185,7 +187,7 @@ function App() {
   const searchMatches = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.trim();
-    const cellMatch = q.match(cellRefPattern);
+    const cellMatch = q.match(CELL_REF_PATTERN);
     if (cellMatch) {
       const refCol = letterToCol(cellMatch[1].toUpperCase());
       const refRow = parseInt(cellMatch[2], 10) - 1;
@@ -231,15 +233,6 @@ function App() {
         return '"' + s.replace(/"/g, '""') + '"';
       }
       return s;
-    };
-    const colToLetter = (col: number): string => {
-      let result = '';
-      let c = col;
-      while (c >= 0) {
-        result = String.fromCharCode((c % 26) + 65) + result;
-        c = Math.floor(c / 26) - 1;
-      }
-      return result;
     };
     for (const sheet of diff.sheets) {
       for (const d of sheet.cellDiffs) {

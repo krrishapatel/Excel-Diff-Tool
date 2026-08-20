@@ -23,6 +23,12 @@ export const DiffSummary: React.FC<DiffSummaryProps> = ({ diff, selectedSheet, o
       <p style={{ fontSize: 14, color: '#6b7280', margin: '0 0 8px' }}>
         {diff.summary.totalCellChanges.toLocaleString()} changes
       </p>
+      {diff.summary.truncatedSheets.length > 0 && (
+        <p style={{ fontSize: 13, color: '#b45309', margin: '0 0 8px' }}>
+          Too big to read in full, so cells past the limit were not compared:{' '}
+          {diff.summary.truncatedSheets.join(', ')}
+        </p>
+      )}
       {sortedSheets.map((sheet) => (
         <SheetRow
           key={sheet.name}
@@ -34,24 +40,6 @@ export const DiffSummary: React.FC<DiffSummaryProps> = ({ diff, selectedSheet, o
     </div>
   );
 };
-
-const StatBox: React.FC<{ label: string; value: number; color: string }> = ({
-  label,
-  value,
-  color,
-}) => (
-  <div
-    style={{
-      background: '#f9fafb',
-      borderRadius: 6,
-      padding: '8px 12px',
-      borderLeft: `3px solid ${color}`,
-    }}
-  >
-    <div style={{ fontSize: 20, fontWeight: 700, color }}>{value}</div>
-    <div style={{ fontSize: 11, color: '#6b7280' }}>{label}</div>
-  </div>
-);
 
 const SheetRow: React.FC<{ sheet: SheetDiff; isSelected: boolean; onClick: () => void }> = ({
   sheet,

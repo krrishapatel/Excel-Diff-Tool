@@ -1,11 +1,18 @@
 import { CellDiff, SheetDiff, WorkbookDiff } from '../types';
 
-interface SheetData {
+export interface SheetData {
   name: string;
   rows: any[][];
   rowCount: number;
   colCount: number;
+  truncated: boolean;
 }
+
+// A guard against a sheet with one cell parked at row 300000, which would build a
+// grid that size. Anything clamped sets `truncated` so the UI can say so, because
+// a cap that hides rows and still reports "no differences" is the worst outcome.
+export const MAX_ROWS = 5000;
+export const MAX_COLS = 200;
 
 export function extractSheetData(workbookJson: any): SheetData[] {
   if (!workbookJson?.sheets) return [];
@@ -17,17 +24,18 @@ export function extractSheetData(workbookJson: any): SheetData[] {
     const dataTable = sheetJson?.data?.dataTable;
 
     if (!dataTable) {
-      sheets.push({ name, rows: [], rowCount: 0, colCount: 0 });
+      sheets.push({ name, rows: [], rowCount: 0, colCount: 0, truncated: false });
       continue;
     }
 
     const rowKeys = Object.keys(dataTable).map(Number).sort((a, b) => a - b);
     if (rowKeys.length === 0) {
-      sheets.push({ name, rows: [], rowCount: 0, colCount: 0 });
+      sheets.push({ name, rows: [], rowCount: 0, colCount: 0, truncated: false });
       continue;
     }
 
-    const maxRow = Math.min(rowKeys[rowKeys.length - 1] + 1, 500);
+    const lastRow = rowKeys[rowKeys.length - 1] + 1;
+    const maxRow = Math.min(lastRow, MAX_ROWS);
     let maxCol = 0;
 
     for (const rk of rowKeys) {
@@ -39,7 +47,8 @@ export function extractSheetData(workbookJson: any): SheetData[] {
         }
       }
     }
-    maxCol = Math.min(maxCol + 1, 50);
+    const lastCol = maxCol + 1;
+    maxCol = Math.min(lastCol, MAX_COLS);
 
     const rows: any[][] = [];
     for (let r = 0; r < maxRow; r++) {
@@ -52,7 +61,13 @@ export function extractSheetData(workbookJson: any): SheetData[] {
       rows.push(row);
     }
 
-    sheets.push({ name, rows, rowCount: maxRow, colCount: maxCol });
+    sheets.push({
+      name,
+      rows,
+      rowCount: maxRow,
+      colCount: maxCol,
+      truncated: lastRow > MAX_ROWS || lastCol > MAX_COLS,
+    });
   }
 
   return sheets;
@@ -90,6 +105,8 @@ function matchSheets(
 function normalizeValue(val: any): any {
   if (val === null || val === undefined || val === '') return null;
   if (typeof val === 'number') {
+    // Numbers are compared to the cent. Two figures that differ below that are
+    // treated as the same figure.
     if (isNaN(val)) return null;
     return Math.round(val * 100) / 100;
   }
@@ -98,11 +115,11 @@ function normalizeValue(val: any): any {
 }
 
 function valuesEqual(a: any, b: any): boolean {
-  if (a === b) return true;
-  if (a === null && b === null) return true;
-  if (a === null || b === null) return false;
-  if (typeof a === 'number' && typeof b === 'number') return a === b;
-  return String(a) === String(b);
+  // Compared with ===, not String(a) === String(b). That made the number 5 equal
+  // to the text "5", which is a change worth catching: the text cell stops
+  // feeding the formulas that reference it. Both sides come out of
+  // normalizeValue, so each is null, a number, or a string.
+  return a === b;
 }
 
 function diffSheet(oldSheet: SheetData, newSheet: SheetData): CellDiff[] {
@@ -209,9 +226,14 @@ export function computeDiff(oldSheets: SheetData[], newSheets: SheetData[]): Wor
     });
   }
 
+  const truncatedSheets = Array.from(
+    new Set([...oldSheets, ...newSheets].filter((s) => s.truncated).map((s) => s.name))
+  );
+
   return {
     sheets: sheetDiffs,
     summary: {
+      truncatedSheets,
       sheetsAdded: added.length,
       sheetsRemoved: removed.length,
       sheetsModified: sheetDiffs.filter((s) => s.status === 'modified').length,

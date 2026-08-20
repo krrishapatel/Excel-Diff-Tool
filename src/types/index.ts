@@ -22,6 +22,8 @@ export interface SheetDiff {
 export interface WorkbookDiff {
   sheets: SheetDiff[];
   summary: {
+    // Sheets bigger than the read limit. Cells past it were not compared.
+    truncatedSheets: string[];
     sheetsAdded: number;
     sheetsRemoved: number;
     sheetsModified: number;

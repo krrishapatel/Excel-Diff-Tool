@@ -39,18 +39,34 @@ export function getCellValueFromJson(workbookJson: any, ref: WorkbookRef): numbe
   if (!dataTable) return null;
 
   // dataTable keys might be numeric or string
-  const rowData = dataTable[row] || dataTable[String(row)];
-  if (!rowData) return null;
+  const rowData = dataTable[row] ?? dataTable[String(row)];
+  if (rowData === null || rowData === undefined) return null;
 
-  const cellData = rowData[col] || rowData[String(col)];
-  if (!cellData) return null;
+  const cellData = rowData[col] ?? rowData[String(col)];
+  // Checked against null and undefined, not for truthiness. A cell holding a bare
+  // 0 failed `if (!cellData)` and came back as "value not found". A balance of 0
+  // is a normal balance.
+  if (cellData === null || cellData === undefined) return null;
 
   // Value might be in .value or directly
   const val = cellData.value !== undefined ? cellData.value : cellData;
   if (val === null || val === undefined) return null;
-  if (typeof val === 'number') return val;
-  const parsed = parseFloat(String(val).replace(/[,$]/g, ''));
-  return isNaN(parsed) ? null : parsed;
+  if (typeof val === 'number') return isNaN(val) ? null : val;
+  return parseNumeric(String(val));
+}
+
+// Accounting exports write negatives in parentheses: (1,234) and $(1,234.00).
+// parseFloat gives NaN for both, and the caller reports NaN as "value not found",
+// so a retained earnings line that is negative by nature never reconciled.
+function parseNumeric(raw: string): number | null {
+  const text = raw.trim();
+  const negated = /^\((.*)\)$/.test(text.replace(/^[$\s]+/, ''));
+  const digits = text.replace(/[(),$\s]/g, '');
+  if (digits === '' || !/^[+-]?(\d+\.?\d*|\.\d+)$/.test(digits)) return null;
+
+  const parsed = parseFloat(digits);
+  if (isNaN(parsed)) return null;
+  return negated ? -Math.abs(parsed) : parsed;
 }
 
 export function runChecks(workbookJson: any, checks: PdfCheck[]): PdfCheckResult[] {
@@ -59,6 +75,17 @@ export function runChecks(workbookJson: any, checks: PdfCheck[]): PdfCheckResult
       ref,
       value: getCellValueFromJson(workbookJson, ref),
     }));
+
+    // allPass starts true and the loop below never runs, so a check with no refs
+    // used to report a green tick against a figure it never looked for.
+    if (actualValues.length === 0) {
+      return {
+        check,
+        status: 'warning',
+        actualValues,
+        message: 'This check lists no workbook cells to compare against the PDF.',
+      };
+    }
 
     const tolerance = check.tolerance ?? 1;
     let allPass = true;

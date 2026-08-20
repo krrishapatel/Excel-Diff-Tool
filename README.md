@@ -13,6 +13,18 @@ npm start
 
 Opens at `http://localhost:3000`.
 
+## Tests
+
+```bash
+npm test              # watch mode
+CI=true npm test      # single run, what CI does
+npx tsc --noEmit      # typecheck
+npm run build
+```
+
+The tests cover the diff engine and the PDF reconciliation logic, which is where a
+wrong answer is quiet: a bad comparison looks exactly like a clean workbook.
+
 ## How to Use
 
 1. **Upload** the prior year (base) and current year (new) `.xlsx` workbooks
@@ -37,6 +49,13 @@ Opens at `http://localhost:3000`.
 - **Sheet matching by name** — sheets are matched between workbooks by exact name. New/removed sheets are flagged separately.
 - **Value-first diffing** — cell value changes are the primary comparison unit (not formatting, styles, or metadata). Values are normalized (numbers rounded to 2 decimal places, empty/null treated equivalently) to reduce noise.
 - **Materiality filtering** — numeric changes below a configurable threshold are hidden, surfacing only material differences for review.
+- **Number vs text is a change** — a cell that goes from the number `5` to the text `"5"` is reported, because the text cell stops feeding the formulas that reference it.
+- **Read limits** — a sheet is read up to 5000 rows and 200 columns. Anything past that is not compared, and the sheet is named in the sidebar as truncated rather than reported clean.
+
+### Known gaps
+- Formulas are not compared, only computed values. A rewritten formula that lands on the same number is invisible.
+- Sheets are matched by exact name, so a renamed sheet reads as one added plus one removed.
+- Cell formatting, styles, merges and hidden rows are not compared.
 
 ### UI Approach
 - Inspired by code diff tools (GitHub PR view): side-by-side panels with color-coded highlights
@@ -53,6 +72,9 @@ Opens at `http://localhost:3000`.
 - Each check specifies: PDF page, expected value, workbook cell reference(s), sign flip tolerance
 - Clicking a check navigates the PDF viewer to the relevant page
 - Handles sign flips (common in debit/credit accounting) and configurable tolerance thresholds
+- Reads accounting negatives, so `(1,234)` and `$(1,234.00)` are both -1234
+- A number with a note attached, like `1,234 (est)`, reports as not found rather than reconciling against the digits
+- A check with no workbook cells listed shows as a warning, not a pass
 
 ### Architecture
 - **React + TypeScript** — type safety for complex diff data structures
